@@ -481,13 +481,13 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     -- Calculate direction to spawn
     local directionToSpawn = (spawnPos - charPos).Unit
     
-    -- Check if movement direction aligns with spawn direction (dot product > 0.7 means roughly same direction)
+    -- Check if movement direction aligns with spawn direction (dot product > 0.9 means very straight alignment)
     local alignment = tracking.direction:Dot(directionToSpawn)
     
-    return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
+    return alignment > 0.9 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Enhanced function to detect if someone else bought the character
+-- Enhanced function to detect if someone else bought the character and trigger rebuy
 local function isCharacterHeadingToOtherPlayer()
     if not AutoBuySystem.currentTarget then return false end
     
@@ -504,6 +504,261 @@ local function isCharacterHeadingToOtherPlayer()
     for _, spawn in ipairs(otherSpawns) do
         if isCharacterHeadingToSpawn(character, spawn) then
             print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
+            
+            -- Clear purchase record and immediately try to rebuy
+            local uid = getCharacterUID(character)
+            if uid then
+                AutoBuySystem.purchasedCharacters[uid] = nil
+                AutoBuySystem.purchaseInProgress[uid] = nil
+            end
+            
+            -- Find a new instance of the same character to buy immediately
+            spawn(function()
+                task.wait(0.1) -- Small delay to let character reach spawn
+                local newInstances = {}
+                for _, obj in pairs(workspace:GetChildren()) do
+                    if obj:IsA("Model") and obj.Name == character.Name and obj ~= character then
+                        table.insert(newInstances, obj)
+                    end
+                end
+            end
+            if not found then
+                table.insert(finalList, name)
+            end
+        end
+        
+        return finalList
+    end
+
+    local characterNames = getSortedCharacters()
+    local gameData
+
+    -- Safe save helper
+    local function safeSave()
+        if DataManager and DataManager.save and gameData then
+            pcall(function()
+                DataManager:save(gameData)
+            end)
+        else
+            warn("safeSave: DataManager.save or gameData not available")
+        end
+    end
+
+    -- Enhanced Auto Buy System with purchase tracking and re-purchase detection
+    local AutoBuySystem = {
+        active = false,
+        currentTarget = nil,
+        currentTargetName = nil,
+        purchasing = false,
+        lastTargetUpdate = 0,
+        purchasedCharacters = {},
+        purchaseInProgress = {},
+        characterInstances = {},  -- Track specific character instances
+        movementTracking = {},    -- Track character movement
+        spawnLocationCache = {}   -- Cache spawn locations
+    }
+
+    -- Get player's spawn location
+    local function getPlayerSpawnLocation()
+        local player = Services.Players.LocalPlayer
+        return player.RespawnLocation or workspace:FindFirstChild("SpawnLocation" .. player.Name)
+    end
+
+    -- Get all other spawn locations (excluding player's)
+    local function getOtherSpawnLocations()
+        local playerSpawn = getPlayerSpawnLocation()
+        local otherSpawns = {}
+        
+        for _, spawnName in ipairs(SPAWN_LOCATIONS) do
+            local spawn = workspace:FindFirstChild(spawnName)
+            if spawn and spawn ~= playerSpawn then
+                table.insert(otherSpawns, spawn)
+            end
+        end
+        
+        return otherSpawns
+    end
+
+    -- Enhanced movement tracking for characters
+    local function trackCharacterMovement(character)
+        if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+        
+        local uid = getCharacterUID(character)
+        if not uid then return nil end
+        
+        local now = tick()
+        local position = character.HumanoidRootPart.Position
+        
+        if not AutoBuySystem.movementTracking[uid] then
+            AutoBuySystem.movementTracking[uid] = {
+                positions = {},
+                lastUpdate = now,
+                isMoving = false,
+                direction = nil,
+                targetSpawn = nil
+            }
+        end
+        
+        local tracking = AutoBuySystem.movementTracking[uid]
+        
+        -- Update position history
+        table.insert(tracking.positions, {position = position, time = now})
+        
+        -- Keep only recent positions (last 5 seconds)
+        while #tracking.positions > 0 and (now - tracking.positions[1].time) > 5 do
+            table.remove(tracking.positions, 1)
+        end
+        
+        -- Calculate movement
+        if #tracking.positions >= 2 then
+            local oldPos = tracking.positions[1].position
+            local newPos = tracking.positions[#tracking.positions].position
+            local distance = (newPos - oldPos).Magnitude
+            
+            tracking.isMoving = distance > CONFIG.MOVEMENT_THRESHOLD
+            
+            if tracking.isMoving then
+                tracking.direction = (newPos - oldPos).Unit
+            end
+        end
+        
+        return tracking
+    end
+
+    -- Check if character is heading towards a specific spawn location
+    local function isCharacterHeadingToSpawn(character, spawnLocation)
+        if not character or not spawnLocation or not character:FindFirstChild("HumanoidRootPart") then
+            return false
+        end
+        
+        local tracking = trackCharacterMovement(character)
+        if not tracking or not tracking.isMoving or not tracking.direction then
+            return false
+        end
+        
+        local charPos = character.HumanoidRootPart.Position
+        local spawnPos = spawnLocation.Position
+        local distanceToSpawn = (spawnPos - charPos).Magnitude
+        
+        -- If too far away, not heading there
+        if distanceToSpawn > CONFIG.SPAWN_CHECK_DISTANCE then
+            return false
+        end
+        
+        -- Calculate direction to spawn
+        local directionToSpawn = (spawnPos - charPos).Unit
+        
+        -- Check if movement direction aligns with spawn direction (dot product > 0.9 means very straight alignment)
+        local alignment = tracking.direction:Dot(directionToSpawn)
+        
+        return alignment > 0.9 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
+    end
+
+    -- Enhanced function to detect if someone else bought the character and trigger rebuy
+    local function isCharacterHeadingToOtherPlayer()
+        if not AutoBuySystem.currentTarget then return false end
+        
+        local character = AutoBuySystem.currentTarget
+        local playerSpawn = getPlayerSpawnLocation()
+        local otherSpawns = getOtherSpawnLocations()
+        
+        -- First check if heading to player's spawn (good)
+        if playerSpawn and isCharacterHeadingToSpawn(character, playerSpawn) then
+            return false -- Character is heading to our spawn, all good
+        end
+        
+        -- Check if heading to any other spawn location (someone else bought it)
+        for _, spawn in ipairs(otherSpawns) do
+            if isCharacterHeadingToSpawn(character, spawn) then
+                print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
+                
+                -- Clear purchase record and immediately try to rebuy
+                local uid = getCharacterUID(character)
+                if uid then
+                    AutoBuySystem.purchasedCharacters[uid] = nil
+                    AutoBuySystem.purchaseInProgress[uid] = nil
+                end
+                
+                -- Find a new instance of the same character to buy immediately
+                spawn(function()
+                    task.wait(0.1) -- Small delay to let character reach spawn
+                    local newInstances = {}
+                    for _, obj in pairs(workspace:GetChildren()) do
+                        if obj:IsA("Model") and obj.Name == character.Name and obj ~= character then
+                            table.insert(newInstances, obj)
+                        end
+                    end
+                    
+                    if #newInstances > 0 then
+                        local targetChar = newInstances[1]
+                        print("🛒 Immediately rebuying " .. targetChar.Name .. " after detection")
+                        
+                        -- Update auto-buy status for rebuy
+                        if UIManager.elements.autoBuyStatus then
+                            UIManager.elements.autoBuyStatus.Text = "Rebuying"
+                            UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(255, 150, 50)
+                        end
+                        
+                        attemptPurchase(Services.Players.LocalPlayer, targetChar)
+                    end
+                end)
+                
+                return true
+            end
+        end
+        
+        return false
+    end
+
+    -- Helper function to get unique character identifier
+    local function getCharacterUID(character)
+        if not character or not character.Parent then return nil end
+        
+        local creationTime = character:GetAttribute("CreationTime")
+        if not creationTime then
+            local success, guid = pcall(function()
+                return Services.HttpService:GenerateGUID(false)
+            end)
+            
+            if success then
+                creationTime = guid
+            else
+                local pos = character:FindFirstChild("HumanoidRootPart")
+                local posString = pos and string.format("%.2f_%.2f_%.2f", pos.Position.X, pos.Position.Y, pos.Position.Z) or "nopos"
+                creationTime = tostring(tick()) .. "_" .. posString .. "_" .. tostring(math.random(10000, 99999))
+            end
+            
+            pcall(function()
+                character:SetAttribute("CreationTime", creationTime)
+            end)
+        end
+        
+        return character.Name .. "_" .. tostring(creationTime)
+    end
+
+    -- Enhanced function to check if character was purchased by tracking instance existence
+    local function isCharacterPurchasedAndStillExists(character)
+        local uid = getCharacterUID(character)
+        if not uid then return false end
+        
+        -- Check if we marked this specific instance as purchased
+        local purchaseData = AutoBuySystem.purchasedCharacters[uid]
+        if purchaseData then
+            -- Verify the character instance still exists in workspace
+            if character.Parent == workspace then
+                return true -- We bought it and it's still there
+            else
+                -- Character was removed (likely bought by someone else after us)
+                -- Clear our purchase record so we can buy it again if it respawns
+                AutoBuySystem.purchasedCharacters[uid] = nil
+                AutoBuySystem.characterInstances[character.Name] = nil
+                print("🔄 Character " .. character.Name .. " was removed after purchase - ready to buy again")
+                return false
+            end
+        end
+        
+        -- Check if we're currently trying to purchase it
+        if AutoBuySystem.purchaseInProgress[uid] then
             return true
         end
     end
@@ -650,7 +905,7 @@ local function markCharacterPurchased(character, success)
         }
         
         AutoBuySystem.purchaseInProgress[uid] = nil
-        print("✅ Successfully purchased: " .. character.Name .. " (UID: " .. uid:sub(-8) .. ")")
+        -- Removed chat output for cleaner experience
         
         -- Clean up old purchase records after 5 minutes
         spawn(function()
@@ -866,6 +1121,12 @@ function AutoBuySystem:followTarget(target)
     self.currentTargetName = targetName
 
     print("🎯 Following target: " .. targetName)
+    
+    -- Update auto-buy status
+    if UIManager.elements.autoBuyStatus then
+        UIManager.elements.autoBuyStatus.Text = "Following"
+        UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(255, 200, 100)
+    end
 
     while self.active and target.Parent and (tick() - startTime) < CONFIG.MAX_FOLLOW_TIME do
         if not self:isCurrentTargetEnabled() then
@@ -879,7 +1140,7 @@ function AutoBuySystem:followTarget(target)
         end
 
         if isCharacterPurchased(target) then
-            print("✅ Target already purchased: " .. targetName)
+            -- Target already purchased, skipping
             return false
         end
 
@@ -897,12 +1158,29 @@ function AutoBuySystem:followTarget(target)
             end
             
             print("💰 In range, attempting purchase: " .. targetName)
+            
+            -- Update auto-buy status
+            if UIManager.elements.autoBuyStatus then
+                UIManager.elements.autoBuyStatus.Text = "Purchasing"
+                UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(50, 205, 50)
+            end
+            
             local success = attemptPurchase(player, target)
             if success then
+                -- Update auto-buy status
+                if UIManager.elements.autoBuyStatus then
+                    UIManager.elements.autoBuyStatus.Text = "Success"
+                    UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(100, 255, 100)
+                end
                 task.wait(3)
                 return true
             else
                 print("❌ Purchase failed for: " .. targetName)
+                -- Update auto-buy status
+                if UIManager.elements.autoBuyStatus then
+                    UIManager.elements.autoBuyStatus.Text = "Failed"
+                    UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(255, 100, 100)
+                end
                 task.wait(2)
                 return false
             end
@@ -939,9 +1217,22 @@ function AutoBuySystem:mainLoop()
         if target then
             print("🎯 New best target found: " .. target.Name .. " (score: " .. math.floor(score) .. ")")
             self.currentTarget = target
+            
+            -- Check if someone else bought our current target
+            if isCharacterHeadingToOtherPlayer() then
+                -- The rebuy logic is handled inside isCharacterHeadingToOtherPlayer
+                task.wait(0.5)
+                continue
+            end
+            
             self:followTarget(target)
         else
             self.currentTargetName = nil
+            -- Update auto-buy status to idle
+            if UIManager.elements.autoBuyStatus then
+                UIManager.elements.autoBuyStatus.Text = "Idle"
+                UIManager.elements.autoBuyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+            end
             -- Clean up old tracking data periodically
             local currentTime = tick()
             for characterName, instances in pairs(self.characterInstances) do
@@ -1874,7 +2165,7 @@ function UIManager:makeSquareDraggable(square)
                 local newX = startPos.X.Offset + delta.X
                 local newY = startPos.Y.Offset + delta.Y
                 
-                -- Keep within screen bounds with proper margins (accounting for square size)
+                -- Allow full screen movement with proper margins (accounting for square size)
                 local squareSize = 80 -- The square is 80x80 pixels
                 local margin = 10 -- Small margin from screen edges
                 
@@ -2209,9 +2500,61 @@ function UIManager:createSettingsPanel()
         end
     end)
 
-    makeSwitch("Auto Buy", "autoBuyEnabled", function()
+    -- Auto Buy with status indicator
+    local autoBuyContainer = Instance.new("Frame")
+    autoBuyContainer.Size = UDim2.new(1, 0, 0, 30)
+    autoBuyContainer.LayoutOrder = 1
+    autoBuyContainer.BackgroundTransparency = 1
+    autoBuyContainer.ZIndex = 51
+    autoBuyContainer.Parent = panel
+
+    local autoBuyLabel = Instance.new("TextLabel")
+    autoBuyLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    autoBuyLabel.BackgroundTransparency = 1
+    autoBuyLabel.Text = "Auto Buy"
+    autoBuyLabel.Font = Enum.Font.Gotham
+    autoBuyLabel.TextSize = 14
+    autoBuyLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoBuyLabel.TextXAlignment = Enum.TextXAlignment.Left
+    autoBuyLabel.ZIndex = 52
+    autoBuyLabel.Parent = autoBuyContainer
+
+    local autoBuyStatus = Instance.new("TextLabel")
+    autoBuyStatus.Size = UDim2.new(0.2, 0, 1, 0)
+    autoBuyStatus.Position = UDim2.new(0.5, 0, 0, 0)
+    autoBuyStatus.BackgroundTransparency = 1
+    autoBuyStatus.Text = "Idle"
+    autoBuyStatus.Font = Enum.Font.Gotham
+    autoBuyStatus.TextSize = 10
+    autoBuyStatus.TextColor3 = Color3.fromRGB(150, 150, 150)
+    autoBuyStatus.TextXAlignment = Enum.TextXAlignment.Center
+    autoBuyStatus.ZIndex = 52
+    autoBuyStatus.Parent = autoBuyContainer
+
+    local autoBuyBtn = Instance.new("TextButton")
+    autoBuyBtn.Size = UDim2.new(0.3, -4, 1, 0)
+    autoBuyBtn.Position = UDim2.new(0.7, 4, 0, 0)
+    autoBuyBtn.AutoButtonColor = false
+    autoBuyBtn.BackgroundColor3 = gameData.settings.autoBuyEnabled and Color3.fromRGB(50, 205, 50) or Color3.fromRGB(100, 100, 100)
+    autoBuyBtn.Text = gameData.settings.autoBuyEnabled and "ON" or "OFF"
+    autoBuyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoBuyBtn.Font = Enum.Font.GothamBold
+    autoBuyBtn.TextSize = 12
+    autoBuyBtn.ZIndex = 53
+    autoBuyBtn.Parent = autoBuyContainer
+
+    autoBuyBtn.MouseButton1Click:Connect(function()
+        gameData.settings.autoBuyEnabled = not gameData.settings.autoBuyEnabled
+        autoBuyBtn.BackgroundColor3 = gameData.settings.autoBuyEnabled and Color3.fromRGB(50, 205, 50) or Color3.fromRGB(100, 100, 100)
+        autoBuyBtn.Text = gameData.settings.autoBuyEnabled and "ON" or "OFF"
         AutoBuySystem:toggle()
-    end, 1)
+        if DataManager and DataManager.save then
+            DataManager:save(gameData)
+        end
+    end)
+
+    -- Store reference for status updates
+    self.elements.autoBuyStatus = autoBuyStatus
 
     makeSwitch("Auto Lock Base", "autoLockEnabled", function()
         AutoLock:toggle()
