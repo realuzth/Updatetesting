@@ -3640,3 +3640,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
+print("hello")
