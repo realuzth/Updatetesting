@@ -531,7 +531,16 @@ local function isCharacterPurchasedByOther()
     end
     
     -- Monitor for rapid prompt state changes (purchase in progress)
-    local uid = getCharacterUID(character)
+    local uid = nil
+    pcall(function()
+        uid = getCharacterUID(character)
+    end)
+    
+    if not uid then
+        -- If we can't get UID, use character name as fallback
+        uid = character.Name .. "_" .. tostring(character)
+    end
+    
     if not AutoBuySystem.promptStates then
         AutoBuySystem.promptStates = {}
     end
