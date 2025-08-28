@@ -518,6 +518,8 @@ local function isCharacterPurchasedByOther()
     end
     
     local character = AutoBuySystem.currentTarget
+    if not character.Name then return false end
+    
     local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
     if not torso then return false end
     
@@ -530,16 +532,8 @@ local function isCharacterPurchasedByOther()
         return true
     end
     
-    -- Monitor for rapid prompt state changes (purchase in progress)
-    local uid = nil
-    pcall(function()
-        uid = getCharacterUID(character)
-    end)
-    
-    if not uid then
-        -- If we can't get UID, use character name as fallback
-        uid = character.Name .. "_" .. tostring(character)
-    end
+    -- Use simple character name + instance as UID to avoid getCharacterUID errors
+    local uid = character.Name .. "_" .. tostring(character)
     
     if not AutoBuySystem.promptStates then
         AutoBuySystem.promptStates = {}
@@ -559,7 +553,7 @@ local function isCharacterPurchasedByOther()
     local lastState = AutoBuySystem.promptStates[uid]
     
     -- If prompt was enabled but now disabled (someone just bought it)
-    if lastState.enabled and not prompt.Enabled then
+    if lastState and lastState.enabled and not prompt.Enabled then
         print("⚡ INSTANT PURCHASE DETECTED: " .. character.Name .. " was just bought by someone else!")
         AutoBuySystem.promptStates[uid] = promptState
         return true
@@ -572,25 +566,43 @@ end
 
 -- Helper function to get unique character identifier
 local function getCharacterUID(character)
-    if not character or not character.Parent then return nil end
+    if not character then return nil end
+    if not character.Parent then return nil end
+    if not character.Name then return nil end
     
-    local creationTime = character:GetAttribute("CreationTime")
+    local creationTime = nil
+    pcall(function()
+        creationTime = character:GetAttribute("CreationTime")
+    end)
+    
     if not creationTime then
         local success, guid = pcall(function()
             return Services.HttpService:GenerateGUID(false)
         end)
         
-        if success then
+        if success and guid then
             creationTime = guid
         else
             local pos = character:FindFirstChild("HumanoidRootPart")
-            local posString = pos and string.format("%.2f_%.2f_%.2f", pos.Position.X, pos.Position.Y, pos.Position.Z) or "nopos"
+            local posString = "nopos"
+            if pos and pos.Position then
+                pcall(function()
+                    posString = string.format("%.2f_%.2f_%.2f", pos.Position.X, pos.Position.Y, pos.Position.Z)
+                end)
+            end
             creationTime = tostring(tick()) .. "_" .. posString .. "_" .. tostring(math.random(10000, 99999))
         end
         
-        pcall(function()
-            character:SetAttribute("CreationTime", creationTime)
-        end)
+        if creationTime then
+            pcall(function()
+                character:SetAttribute("CreationTime", creationTime)
+            end)
+        end
+    end
+    
+    if not creationTime then
+        -- Final fallback if everything fails
+        creationTime = tostring(tick()) .. "_fallback"
     end
     
     return character.Name .. "_" .. tostring(creationTime)
