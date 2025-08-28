@@ -972,7 +972,7 @@ function AutoBuySystem:followTarget(target)
         end
 
         if not target.Parent or not target:FindFirstChild("HumanoidRootPart") then
-            print("❌ Target became invalid: " .. targetName)
+            print("❌ Target became invalid: " .. targetName .. " - stopping follow")
             return false
         end
 
@@ -1048,68 +1048,12 @@ function AutoBuySystem:mainLoop()
                 -- Mark the current target as purchased so we don't target it again
                 local oldUID = getCharacterUID(target)
                 self.purchasedCharacters[oldUID] = tick()
-                print("🔍 DEBUG: Marked " .. target.Name .. " as purchased (UID: " .. tostring(oldUID) .. ")")
                 
                 self.currentTarget = nil
                 self.currentTargetName = nil
                 
-                -- Force immediate search for next target
-                print("🔍 DEBUG: Calling findBestTarget...")
-                local nextTarget, nextScore = self:findBestTarget()
-                
-                print("🔍 DEBUG: findBestTarget returned - Target: " .. tostring(nextTarget and nextTarget.Name or "nil") .. ", Score: " .. tostring(nextScore or "nil"))
-                
-                if nextTarget then
-                    print("⚡ FOUND NEW TARGET FOR INSTANT REBUY: " .. nextTarget.Name .. " (score: " .. math.floor(nextScore) .. ")")
-                    print("🔍 DEBUG: Setting new target and starting follow...")
-                    
-                    self.currentTarget = nextTarget
-                    self.currentTargetName = nextTarget.Name
-                    
-                    -- Check if new target is different from old one
-                    local newUID = getCharacterUID(nextTarget)
-                    print("🔍 DEBUG: New target UID: " .. tostring(newUID) .. " vs Old UID: " .. tostring(oldUID))
-                    
-                    if newUID == oldUID then
-                        print("⚠️ WARNING: New target is same as old target - skipping")
-                        task.wait(0.5)
-                        continue
-                    end
-                    
-                    -- Immediately start following the new target
-                    print("🏃 Starting immediate follow for: " .. nextTarget.Name)
-                    local rebuyResult = self:followTarget(nextTarget)
-                    
-                    print("🔍 DEBUG: followTarget returned: " .. tostring(rebuyResult))
-                    
-                    if rebuyResult == true then
-                        print("🎉 INSTANT REBUY SUCCESS: " .. nextTarget.Name)
-                        self.purchasedCharacters[getCharacterUID(nextTarget)] = tick()
-                    elseif rebuyResult == "rebuy" then
-                        print("🔄 New target also triggered rebuy - continuing search...")
-                    else
-                        print("❌ Instant rebuy failed for: " .. nextTarget.Name .. " (result: " .. tostring(rebuyResult) .. ")")
-                    end
-                else
-                    print("❌ No other targets available for instant rebuy")
-                    print("🔍 DEBUG: Checking workspace for available characters...")
-                    
-                    -- Debug: Check what characters are actually available
-                    local availableChars = {}
-                    for _, character in pairs(workspace:GetChildren()) do
-                        if character:IsA("Model") and character:FindFirstChild("HumanoidRootPart") then
-                            local charData = CharacterDatabase[character.Name]
-                            if charData then
-                                local isPurchased = isCharacterPurchased(character)
-                                table.insert(availableChars, character.Name .. " (purchased: " .. tostring(isPurchased) .. ")")
-                            end
-                        end
-                    end
-                    
-                    print("🔍 DEBUG: Available characters: " .. table.concat(availableChars, ", "))
-                end
-                
-                task.wait(0.1)
+                print("🔄 Restarting auto-buy loop to find new target...")
+                task.wait(0.1) -- Small delay then continue main loop
                 continue
             end
         else
