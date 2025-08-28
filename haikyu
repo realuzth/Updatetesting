@@ -2058,22 +2058,32 @@ function UIManager:makeSquareDraggable(square)
     
     GameState.squareDragging = false
     
-    -- Use the square itself for input detection (entire area clickable)
-    square.InputBegan:Connect(function(input)
+    -- Global input detection instead of square-specific
+    local inputConnection = Services.UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            hasMoved = false
-            GameState.squareDragging = false
+            local mousePos = Services.UserInputService:GetMouseLocation()
+            local squarePos = square.AbsolutePosition
+            local squareSize = square.AbsoluteSize
             
-            -- Store the mouse position and current square position
-            dragStart = Services.UserInputService:GetMouseLocation()
-            startPos = square.Position
+            -- Check if mouse is over the square
+            if mousePos.X >= squarePos.X and mousePos.X <= squarePos.X + squareSize.X and
+               mousePos.Y >= squarePos.Y and mousePos.Y <= squarePos.Y + squareSize.Y then
+                dragging = true
+                hasMoved = false
+                GameState.squareDragging = false
+                
+                -- Store the mouse position and current square position
+                dragStart = mousePos
+                startPos = square.Position
+            end
         end
     end)
     
     -- Global mouse movement tracking - works anywhere on screen
     local dragConnection = Services.UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local currentMouse = Services.UserInputService:GetMouseLocation()
             local delta = currentMouse - dragStart
             
@@ -2128,6 +2138,7 @@ function UIManager:makeSquareDraggable(square)
     -- Clean up connections when square is destroyed
     square.AncestryChanged:Connect(function()
         if not square.Parent then
+            if inputConnection then inputConnection:Disconnect() end
             if dragConnection then dragConnection:Disconnect() end
             if releaseConnection then releaseConnection:Disconnect() end
         end
@@ -2168,11 +2179,11 @@ function UIManager:create()
     corner.CornerRadius = UDim.new(0, 20) -- Slightly more rounded
     corner.Parent = mainFrame
 
-    -- Enhanced stroke with glow effect
+    -- Simple border
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(80, 120, 255) -- Blue accent color
-    stroke.Thickness = 3
-    stroke.Transparency = 0.2
+    stroke.Color = Color3.fromRGB(60, 60, 80)
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
     stroke.Parent = mainFrame
 
     -- Improved gradient
@@ -2326,8 +2337,8 @@ function UIManager:createSettingsPanel()
 
     local panel = Instance.new("Frame")
     panel.Name = "SettingsPanel"
-    panel.Size = UDim2.new(0, 200, 0, 180)  -- Reduced from 220x240 to 200x180
-    panel.Position = UDim2.new(1, -210, 0, 65)  -- Adjusted position
+    panel.Size = UDim2.new(0, 250, 0, 280)  -- Increased size to fit all content
+    panel.Position = UDim2.new(1, -260, 0, 65)  -- Adjusted position for larger panel
     panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     panel.Visible = false
     panel.ZIndex = 50
@@ -3437,4 +3448,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hello v1.01")
+print("idk")
