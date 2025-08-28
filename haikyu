@@ -508,7 +508,7 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Enhanced function to detect if someone else bought the character
+-- Enhanced function to detect if someone else bought the character based on spawn location movement
 local function isCharacterHeadingToOtherPlayer()
     -- Add safety checks to prevent nil errors
     if not AutoBuySystem.currentTarget then 
@@ -526,51 +526,58 @@ local function isCharacterHeadingToOtherPlayer()
     -- Get movement tracking data
     local tracking = trackCharacterMovement(character)
     if not tracking or not tracking.isMoving then
-        print("🔍 " .. character.Name .. " - not moving yet, continue monitoring")
-        return false
+        return false -- Only check when character is actually moving
     end
     
-    -- Get player spawn location
+    -- Get all spawn locations
     local playerSpawn = nil
+    local otherSpawns = {}
+    
     pcall(function()
         playerSpawn = getPlayerSpawnLocation()
     end)
     
+    pcall(function()
+        otherSpawns = getOtherSpawnLocations()
+    end)
+    
     if not playerSpawn then 
-        print("🔍 " .. character.Name .. " - can't find player spawn, assuming someone else bought it")
-        return true -- If we can't find our spawn, assume it's going elsewhere
+        print("🔍 " .. character.Name .. " - can't find player spawn locations")
+        return false -- Don't assume anything if we can't find spawns
     end
     
-    -- Check if character is moving towards our spawn
     local charPos = character.HumanoidRootPart.Position
+    
+    -- First check if heading to our spawn (good - continue following)
     local playerSpawnPos = playerSpawn.Position
     local distanceToPlayerSpawn = (playerSpawnPos - charPos).Magnitude
-    
-    -- Calculate direction to our spawn
     local directionToPlayerSpawn = (playerSpawnPos - charPos).Unit
-    local alignment = tracking.direction:Dot(directionToPlayerSpawn)
+    local alignmentToPlayer = tracking.direction:Dot(directionToPlayerSpawn)
     
-    print("🔍 " .. character.Name .. " - Distance to our spawn: " .. math.floor(distanceToPlayerSpawn) .. ", Alignment: " .. math.floor(alignment * 100) .. "%")
-    
-    -- If character is close to our spawn and moving towards it, it's ours
-    if distanceToPlayerSpawn < 100 and alignment > 0.5 then
-        print("✅ " .. character.Name .. " is heading to OUR spawn - continuing follow")
+    -- If clearly heading to our spawn, continue following
+    if distanceToPlayerSpawn < 200 and alignmentToPlayer > 0.6 then
+        print("✅ " .. character.Name .. " is heading to OUR spawn (alignment: " .. math.floor(alignmentToPlayer * 100) .. "%) - continuing follow")
         return false
     end
     
-    -- If character is moving but NOT towards our spawn, someone else bought it
-    if alignment < 0.3 then -- Not aligned with our spawn direction
-        print("⚡ " .. character.Name .. " is NOT heading to our spawn (alignment: " .. math.floor(alignment * 100) .. "%) - INSTANT REBUY!")
-        return true
+    -- Check if heading to any OTHER spawn location
+    for i, spawn in ipairs(otherSpawns) do
+        if spawn and spawn.Parent and spawn.Position then
+            local otherSpawnPos = spawn.Position
+            local distanceToOtherSpawn = (otherSpawnPos - charPos).Magnitude
+            local directionToOtherSpawn = (otherSpawnPos - charPos).Unit
+            local alignmentToOther = tracking.direction:Dot(directionToOtherSpawn)
+            
+            -- If character is clearly heading to another spawn
+            if distanceToOtherSpawn < 200 and alignmentToOther > 0.6 then
+                print("⚡ " .. character.Name .. " is heading to ANOTHER PLAYER'S spawn (spawn " .. i .. ", alignment: " .. math.floor(alignmentToOther * 100) .. "%) - INSTANT REBUY!")
+                return true
+            end
+        end
     end
     
-    -- If character is far from our spawn and moving away, someone else bought it
-    if distanceToPlayerSpawn > 150 and alignment < 0.7 then
-        print("⚡ " .. character.Name .. " is far from our spawn and not aligned - INSTANT REBUY!")
-        return true
-    end
-    
-    print("🔍 " .. character.Name .. " - still monitoring movement...")
+    -- If character is moving but not clearly heading to any spawn, keep monitoring
+    print("🔍 " .. character.Name .. " - moving but direction unclear (player alignment: " .. math.floor(alignmentToPlayer * 100) .. "%) - continue monitoring")
     return false
 end
 
