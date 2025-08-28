@@ -963,6 +963,85 @@ function AutoBuySystem:mainLoop()
     print("🛑 Auto Buy main loop stopped")
 end
 
+-- Enhanced rebuy detection and immediate action
+local function checkForRebuyOpportunity()
+    if not AutoBuySystem.active then return end
+    
+    -- Check if our current target was bought by someone else
+    if AutoBuySystem.currentTarget and isCharacterHeadingToOtherPlayer() then
+        print("🚨 REBUY OPPORTUNITY DETECTED: " .. AutoBuySystem.currentTarget.Name .. " was bought by someone else!")
+        
+        -- Immediately try to buy it back without walking
+        local target = AutoBuySystem.currentTarget
+        if target and target.Parent and target:FindFirstChild("HumanoidRootPart") then
+            local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
+            if torso then
+                local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
+                if prompt and prompt:IsA("ProximityPrompt") then
+                    -- Force immediate purchase attempt
+                    print("💰 IMMEDIATE REBUY ATTEMPT for: " .. target.Name)
+                    pcall(function()
+                        fireproximityprompt(prompt)
+                    end)
+                    
+                    -- Clear purchase tracking to allow rebuy
+                    local uid = getCharacterUID(target)
+                    if uid then
+                        AutoBuySystem.purchasedCharacters[uid] = nil
+                        AutoBuySystem.purchaseInProgress[uid] = nil
+                    end
+                    
+                    -- Wait a moment then continue searching
+                    task.wait(1)
+                    return
+                end
+            end
+        end
+    end
+    
+    -- Check all characters for rebuy opportunities
+    for _, charName in ipairs(characterNames) do
+        local charData = COMPLETE_DATABASE[charName]
+        local trackData = gameData.characters[charName]
+        
+        if trackData and trackData.enabled then
+            local target = workspace:FindFirstChild(charName)
+            if target and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
+                -- Check if this character is heading to another player's spawn
+                local otherSpawns = getOtherSpawnLocations()
+                for _, spawn in ipairs(otherSpawns) do
+                    if isCharacterHeadingToSpawn(target, spawn) then
+                        print("🚨 REBUY OPPORTUNITY: " .. charName .. " heading to other spawn")
+                        
+                        -- Try immediate rebuy
+                        local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
+                        if torso then
+                            local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
+                            if prompt and prompt:IsA("ProximityPrompt") then
+                                print("💰 IMMEDIATE REBUY for: " .. charName)
+                                pcall(function()
+                                    fireproximityprompt(prompt)
+                                end)
+                                
+                                -- Clear tracking for this character
+                                local uid = getCharacterUID(target)
+                                if uid then
+                                    AutoBuySystem.purchasedCharacters[uid] = nil
+                                    AutoBuySystem.purchaseInProgress[uid] = nil
+                                end
+                                
+                                -- Note: Chat messages like "/CharacterName" are from the game's purchase system, not this script
+                                -- This is normal behavior and cannot be prevented without breaking the purchase functionality
+                            end
+                        end
+                        break
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- Lock door function
 local function lockDoor()
     local lockerRoom = getPlayerLockerRoom()
