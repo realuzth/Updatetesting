@@ -465,7 +465,12 @@ local function trackCharacterMovement(character)
         
         if tracking.isMoving then
             tracking.direction = (newPos - oldPos).Unit
+            print("🔍 DEBUG: " .. character.Name .. " is moving - distance: " .. math.floor(distance) .. ", direction: " .. tostring(tracking.direction))
+        else
+            print("🔍 DEBUG: " .. character.Name .. " is not moving - distance: " .. math.floor(distance) .. " (threshold: " .. CONFIG.MOVEMENT_THRESHOLD .. ")")
         end
+    else
+        print("🔍 DEBUG: " .. character.Name .. " - not enough position data (" .. #tracking.positions .. " positions)")
     end
     
     return tracking
@@ -511,11 +516,21 @@ end
 -- Enhanced function to detect if someone else bought the character
 local function isCharacterHeadingToOtherPlayer()
     -- Add safety checks to prevent nil errors
-    if not AutoBuySystem.currentTarget then return false end
-    if not AutoBuySystem.currentTarget.Parent then return false end
-    if not AutoBuySystem.currentTarget:FindFirstChild("HumanoidRootPart") then return false end
+    if not AutoBuySystem.currentTarget then 
+        print("🔍 DEBUG: No current target")
+        return false 
+    end
+    if not AutoBuySystem.currentTarget.Parent then 
+        print("🔍 DEBUG: Current target has no parent")
+        return false 
+    end
+    if not AutoBuySystem.currentTarget:FindFirstChild("HumanoidRootPart") then 
+        print("🔍 DEBUG: Current target has no HumanoidRootPart")
+        return false 
+    end
     
     local character = AutoBuySystem.currentTarget
+    print("🔍 DEBUG: Checking if " .. character.Name .. " is heading to other player")
     
     -- Safe spawn location checks with pcall
     local playerSpawn = nil
@@ -529,8 +544,14 @@ local function isCharacterHeadingToOtherPlayer()
         otherSpawns = getOtherSpawnLocations()
     end)
     
+    print("🔍 DEBUG: PlayerSpawn exists: " .. tostring(playerSpawn ~= nil))
+    print("🔍 DEBUG: Other spawns count: " .. #otherSpawns)
+    
     -- Only proceed if we have valid spawn data
-    if not playerSpawn or not otherSpawns then return false end
+    if not playerSpawn or not otherSpawns then 
+        print("🔍 DEBUG: Missing spawn data - playerSpawn: " .. tostring(playerSpawn ~= nil) .. ", otherSpawns: " .. #otherSpawns)
+        return false 
+    end
     
     -- First check if heading to player's spawn (good)
     local headingToPlayer = false
@@ -538,17 +559,21 @@ local function isCharacterHeadingToOtherPlayer()
         headingToPlayer = isCharacterHeadingToSpawn(character, playerSpawn)
     end)
     
+    print("🔍 DEBUG: Heading to player spawn: " .. tostring(headingToPlayer))
+    
     if headingToPlayer then
         return false -- Character is heading to our spawn, all good
     end
     
     -- Check if heading to any other spawn location (someone else bought it)
-    for _, spawn in ipairs(otherSpawns) do
+    for i, spawn in ipairs(otherSpawns) do
         if spawn and spawn.Parent then
             local headingToOther = false
             pcall(function()
                 headingToOther = isCharacterHeadingToSpawn(character, spawn)
             end)
+            
+            print("🔍 DEBUG: Checking spawn " .. i .. " - heading there: " .. tostring(headingToOther))
             
             if headingToOther then
                 print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
@@ -557,6 +582,7 @@ local function isCharacterHeadingToOtherPlayer()
         end
     end
     
+    print("🔍 DEBUG: Not heading to any other spawn")
     return false
 end
 
