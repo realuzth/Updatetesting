@@ -458,7 +458,7 @@ local function trackCharacterMovement(character)
     return tracking
 end
 
--- Check if character is heading towards a specific spawn location
+-- Check if character is heading towards a specific spawn location - MORE ACCURATE DETECTION
 local function isCharacterHeadingToSpawn(character, spawnLocation)
     if not character or not spawnLocation or not character:FindFirstChild("HumanoidRootPart") then
         return false
@@ -473,25 +473,25 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     local spawnPos = spawnLocation.Position
     local distanceToSpawn = (spawnPos - charPos).Magnitude
     
-    -- If too far away, not heading there
-    if distanceToSpawn > CONFIG.SPAWN_CHECK_DISTANCE then
+    -- More accurate distance check - must be close to spawn
+    if distanceToSpawn > 25 then -- Reduced from 50 to 25 for more accuracy
         return false
     end
     
     -- Calculate direction to spawn
     local directionToSpawn = (spawnPos - charPos).Unit
     
-    -- Check if movement direction aligns with spawn direction (dot product > 0.7 means roughly same direction)
+    -- More strict alignment check - must be heading directly to spawn
     local alignment = tracking.direction:Dot(directionToSpawn)
     
-    return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
+    -- Increased threshold from 0.7 to 0.85 for more precise detection
+    return alignment > 0.85 and distanceToSpawn < 25
 end
 
--- Enhanced function to detect if someone else bought the character
-local function isCharacterHeadingToOtherPlayer()
-    if not AutoBuySystem.currentTarget then return false end
+-- Enhanced function to detect if someone else bought the character - INSTANT REBUY
+local function isCharacterHeadingToOtherPlayer(character)
+    if not character then return false end
     
-    local character = AutoBuySystem.currentTarget
     local playerSpawn = getPlayerSpawnLocation()
     local otherSpawns = getOtherSpawnLocations()
     
@@ -503,7 +503,30 @@ local function isCharacterHeadingToOtherPlayer()
     -- Check if heading to any other spawn location (someone else bought it)
     for _, spawn in ipairs(otherSpawns) do
         if isCharacterHeadingToSpawn(character, spawn) then
-            print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
+            print("🔍 INSTANT REBUY: " .. character.Name .. " heading to another player's base - triggering immediate rebuy")
+            
+            -- Clear purchase records for this character type to allow instant rebuy
+            local characterName = character.Name
+            if AutoBuySystem.characterInstances[characterName] then
+                for uid, _ in pairs(AutoBuySystem.characterInstances[characterName]) do
+                    AutoBuySystem.purchasedCharacters[uid] = nil
+                    AutoBuySystem.purchaseInProgress[uid] = nil
+                end
+                AutoBuySystem.characterInstances[characterName] = {}
+            end
+            
+            -- Trigger immediate rebuy by finding new instance
+            spawn(function()
+                task.wait(0.1) -- Small delay to let character move
+                local newTarget = workspace:FindFirstChild(characterName)
+                if newTarget and newTarget ~= character then
+                    print("⚡ INSTANT REBUY: Found new " .. characterName .. " - attempting immediate purchase")
+                    AutoBuySystem.currentTarget = newTarget
+                    AutoBuySystem.currentTargetName = characterName
+                    AutoBuySystem:followTarget(newTarget)
+                end
+            end)
+            
             return true
         end
     end
@@ -848,7 +871,6 @@ function AutoBuySystem:findBestTarget()
                 bestTarget = target
             end
         end
-    end
     
     return bestTarget, bestScore
 end
@@ -883,6 +905,12 @@ function AutoBuySystem:followTarget(target)
             return false
         end
 
+        -- INSTANT REBUY CHECK - Check if someone else bought it
+        if isCharacterHeadingToOtherPlayer(target) then
+            print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
+            return false -- Exit this follow to allow rebuy
+        end
+
         if not target.Parent or not target:FindFirstChild("HumanoidRootPart") then
             print("❌ Target became invalid: " .. targetName)
             return false
@@ -899,17 +927,17 @@ function AutoBuySystem:followTarget(target)
             print("💰 In range, attempting purchase: " .. targetName)
             local success = attemptPurchase(player, target)
             if success then
-                task.wait(3)
+                task.wait(1) -- Reduced from 3 to 1 second for faster rebuy
                 return true
             else
                 print("❌ Purchase failed for: " .. targetName)
-                task.wait(2)
+                task.wait(0.5) -- Reduced from 2 to 0.5 seconds
                 return false
             end
         end
 
         humanoid:MoveTo(target.HumanoidRootPart.Position)
-        task.wait(0.15)
+        task.wait(0.1) -- Reduced from 0.15 to 0.1 for faster response
     end
 
     if tick() - startTime >= CONFIG.MAX_FOLLOW_TIME then
@@ -933,9 +961,6 @@ function AutoBuySystem:mainLoop()
             task.wait(1)
             continue
         end
-        
-        -- Check for rebuy opportunities first
-        checkForRebuyOpportunity()
         
         local target, score = self:findBestTarget()
         
@@ -961,85 +986,6 @@ function AutoBuySystem:mainLoop()
     end
     
     print("🛑 Auto Buy main loop stopped")
-end
-
--- Enhanced rebuy detection and immediate action
-local function checkForRebuyOpportunity()
-    if not AutoBuySystem.active then return end
-    
-    -- Check if our current target was bought by someone else
-    if AutoBuySystem.currentTarget and isCharacterHeadingToOtherPlayer() then
-        print("🚨 REBUY OPPORTUNITY DETECTED: " .. AutoBuySystem.currentTarget.Name .. " was bought by someone else!")
-        
-        -- Immediately try to buy it back without walking
-        local target = AutoBuySystem.currentTarget
-        if target and target.Parent and target:FindFirstChild("HumanoidRootPart") then
-            local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-            if torso then
-                local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-                if prompt and prompt:IsA("ProximityPrompt") then
-                    -- Force immediate purchase attempt
-                    print("💰 IMMEDIATE REBUY ATTEMPT for: " .. target.Name)
-                    pcall(function()
-                        fireproximityprompt(prompt)
-                    end)
-                    
-                    -- Clear purchase tracking to allow rebuy
-                    local uid = getCharacterUID(target)
-                    if uid then
-                        AutoBuySystem.purchasedCharacters[uid] = nil
-                        AutoBuySystem.purchaseInProgress[uid] = nil
-                    end
-                    
-                    -- Wait a moment then continue searching
-                    task.wait(1)
-                    return
-                end
-            end
-        end
-    end
-    
-    -- Check all characters for rebuy opportunities
-    for _, charName in ipairs(characterNames) do
-        local charData = COMPLETE_DATABASE[charName]
-        local trackData = gameData.characters[charName]
-        
-        if trackData and trackData.enabled then
-            local target = workspace:FindFirstChild(charName)
-            if target and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
-                -- Check if this character is heading to another player's spawn
-                local otherSpawns = getOtherSpawnLocations()
-                for _, spawn in ipairs(otherSpawns) do
-                    if isCharacterHeadingToSpawn(target, spawn) then
-                        print("🚨 REBUY OPPORTUNITY: " .. charName .. " heading to other spawn")
-                        
-                        -- Try immediate rebuy
-                        local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-                        if torso then
-                            local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-                            if prompt and prompt:IsA("ProximityPrompt") then
-                                print("💰 IMMEDIATE REBUY for: " .. charName)
-                                pcall(function()
-                                    fireproximityprompt(prompt)
-                                end)
-                                
-                                -- Clear tracking for this character
-                                local uid = getCharacterUID(target)
-                                if uid then
-                                    AutoBuySystem.purchasedCharacters[uid] = nil
-                                    AutoBuySystem.purchaseInProgress[uid] = nil
-                                end
-                                
-                                -- Note: Chat messages like "/CharacterName" are from the game's purchase system, not this script
-                                -- This is normal behavior and cannot be prevented without breaking the purchase functionality
-                            end
-                        end
-                        break
-                    end
-                end
-            end
-        end
-    end
 end
 
 -- Lock door function
@@ -1937,7 +1883,7 @@ function UIManager:makeSquareDraggable(square)
         end
     end)
     
-    -- Global mouse movement tracking
+    -- Global mouse movement tracking - ALLOW DRAGGING ANYWHERE ON SCREEN
     local dragConnection = Services.UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
@@ -1956,11 +1902,11 @@ function UIManager:makeSquareDraggable(square)
                 local newX = startPos.X.Offset + delta.X
                 local newY = startPos.Y.Offset + delta.Y
                 
-                -- Keep within screen bounds with proper margins (accounting for square size)
+                -- Allow dragging ANYWHERE on screen - removed restrictions
                 local squareSize = 80 -- The square is 80x80 pixels
-                local margin = 10 -- Small margin from screen edges
+                local margin = 5 -- Very small margin
                 
-                -- REMOVED: No more 1/4 screen limitation - can drag anywhere on screen
+                -- Allow full screen movement
                 newX = math.max(margin, math.min(screenSize.X - squareSize - margin, newX))
                 newY = math.max(margin, math.min(screenSize.Y - squareSize - margin, newY))
                 
@@ -2051,12 +1997,39 @@ function UIManager:create()
     if self.createSidebar then self:createSidebar() end
     if self.createMainPanel then self:createMainPanel() end
     if self.createFooter then self:createFooter() end
-    if self.createSettingsPanel then
-        self:createSettingsPanel()
-    end
-    if self.makeDraggable then self:makeDraggable() end
-
+    self:createSettingsPanel()
+    
+    print("✅ UI Created Successfully")
     return screenGui
+end
+
+-- Add auto-buy status indicator to footer
+function UIManager:updateAutoBuyStatus()
+    local footer = self.elements.footer
+    if not footer then return end
+    
+    local statusIndicator = footer:FindFirstChild("AutoBuyStatus")
+    if not statusIndicator then
+        statusIndicator = Instance.new("TextLabel")
+        statusIndicator.Name = "AutoBuyStatus"
+        statusIndicator.Size = UDim2.new(0, 150, 1, 0)
+        statusIndicator.Position = UDim2.new(1, -160, 0, 0)
+        statusIndicator.BackgroundTransparency = 1
+        statusIndicator.Font = Enum.Font.GothamBold
+        statusIndicator.TextSize = 14
+        statusIndicator.TextXAlignment = Enum.TextXAlignment.Right
+        statusIndicator.ZIndex = 10
+        statusIndicator.Parent = footer
+    end
+    
+    -- Update status based on auto-buy state
+    if gameData.settings.autoBuyEnabled then
+        statusIndicator.Text = "🟢 AUTO-BUY: ON"
+        statusIndicator.TextColor3 = Color3.fromRGB(0, 255, 0)
+    else
+        statusIndicator.Text = "🔴 AUTO-BUY: OFF"
+        statusIndicator.TextColor3 = Color3.fromRGB(255, 0, 0)
+    end
 end
 
 function UIManager:createHeader()
@@ -2169,8 +2142,8 @@ function UIManager:createSettingsPanel()
 
     local panel = Instance.new("Frame")
     panel.Name = "SettingsPanel"
-    panel.Size = UDim2.new(0, 220, 0, 220)  -- Increased size to accommodate clear data button
-    panel.Position = UDim2.new(1, -230, 0, 65)  -- Adjusted position
+    panel.Size = UDim2.new(0, 200, 0, 180)  -- Reduced from 220x240 to 200x180
+    panel.Position = UDim2.new(1, -210, 0, 65)  -- Adjusted position
     panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     panel.Visible = false
     panel.ZIndex = 50
@@ -2294,6 +2267,8 @@ function UIManager:createSettingsPanel()
 
     makeSwitch("Auto Buy", "autoBuyEnabled", function()
         AutoBuySystem:toggle()
+        -- Update status indicator when toggled
+        UIManager:updateAutoBuyStatus()
     end, 1)
 
     makeSwitch("Auto Lock Base", "autoLockEnabled", function()
@@ -2794,10 +2769,12 @@ function UIManager:updateCharacterList()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
             scrollFrame.Parent = parent
             
-            self.elements.trackingScroll = scrollFrame
-            self.elements.trackingRows = {}
+            self.elements.footer = footer
+            self.elements.statusContainer = statusContainer
             
-            self:populateTrackingRows()
+            self:updateFooter()
+            -- Initialize auto-buy status indicator
+            self:updateAutoBuyStatus()
         end
 
         function UIManager:populateTrackingRows()
@@ -2962,10 +2939,9 @@ function UIManager:updateCharacterList()
             
             local statusItems = {
                 {name = "lastUpdate", text = "Updated: Now", pos = 0},
-                {name = "sessionInfo", text = "Session: 0m", pos = 0.15},
-                {name = "performance", text = "FPS: 60", pos = 0.35},
-                {name = "tracking", text = "Tracking: 0/0", pos = 0.55},
-                {name = "autoBuyStatus", text = "Auto Buy: OFF", pos = 0.75}
+                {name = "sessionInfo", text = "Session: 0m", pos = 0.2},
+                {name = "performance", text = "FPS: 60", pos = 0.5},
+                {name = "tracking", text = "Tracking: 0/0", pos = 0.75}
             }
             
             for _, item in ipairs(statusItems) do
@@ -3068,13 +3044,6 @@ function UIManager:updateCharacterList()
             
             if self.elements.tracking then
                 self.elements.tracking.Text = string.format("Tracking: %d/%d", GameState.trackingEnabled, GameState.trackingDisplayed)
-            end
-            
-            if self.elements.autoBuyStatus then
-                local status = AutoBuySystem.active and "ON" or "OFF"
-                local color = AutoBuySystem.active and Color3.fromRGB(76, 175, 80) or Color3.fromRGB(244, 67, 54)
-                self.elements.autoBuyStatus.Text = "Auto Buy: " .. status
-                self.elements.autoBuyStatus.TextColor3 = color
             end
         end
 
@@ -3275,9 +3244,6 @@ function UIManager:updateCharacterList()
                 -- Update character states and footer
                 CharacterTracker:updateCharacterStates(deltaTime)
                 UIManager:updateFooter()
-                
-                -- Check for rebuy opportunities
-                checkForRebuyOpportunity()
             end
 
             -- Update performance metrics
@@ -3291,89 +3257,3 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-        
-        -- IMPORTANT NOTES:
-        -- 1. Chat messages like "/CharacterName" that appear when purchasing characters are from the game's own purchase system
-        --    This is normal behavior and cannot be prevented without breaking the purchase functionality
-        -- 2. The rebuy system now works by detecting when characters head to other players' spawn locations
-        -- 3. UI panel can now be dragged anywhere on the screen (no more 1/4 limitation)
-        -- 4. Auto Buy status is now displayed in the footer
-        -- 5. Settings panel size increased to properly accommodate the Clear Data button
-
-        -- NEW: Enhanced rebuy detection and immediate action
-        local function checkForRebuyOpportunity()
-            if not AutoBuySystem.active then return end
-            
-            -- Check if our current target was bought by someone else
-            if AutoBuySystem.currentTarget and isCharacterHeadingToOtherPlayer() then
-                print("🚨 REBUY OPPORTUNITY DETECTED: " .. AutoBuySystem.currentTarget.Name .. " was bought by someone else!")
-                
-                -- Immediately try to buy it back without walking
-                local target = AutoBuySystem.currentTarget
-                if target and target.Parent and target:FindFirstChild("HumanoidRootPart") then
-                    local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-                    if torso then
-                        local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-                        if prompt and prompt:IsA("ProximityPrompt") then
-                            -- Force immediate purchase attempt
-                            print("💰 IMMEDIATE REBUY ATTEMPT for: " .. target.Name)
-                            pcall(function()
-                                fireproximityprompt(prompt)
-                            end)
-                            
-                            -- Clear purchase tracking to allow rebuy
-                            local uid = getCharacterUID(target)
-                            if uid then
-                                AutoBuySystem.purchasedCharacters[uid] = nil
-                                AutoBuySystem.purchaseInProgress[uid] = nil
-                            end
-                            
-                            -- Wait a moment then continue searching
-                            task.wait(1)
-                            return
-                        end
-                    end
-                end
-            end
-            
-            -- Check all characters for rebuy opportunities
-            for _, charName in ipairs(characterNames) do
-                local charData = COMPLETE_DATABASE[charName]
-                local trackData = gameData.characters[charName]
-                
-                if trackData and trackData.enabled then
-                    local target = workspace:FindFirstChild(charName)
-                    if target and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
-                        -- Check if this character is heading to another player's spawn
-                        local otherSpawns = getOtherSpawnLocations()
-                        for _, spawn in ipairs(otherSpawns) do
-                            if isCharacterHeadingToSpawn(target, spawn) then
-                            print("�� REBUY OPPORTUNITY: " .. charName .. " heading to other spawn")
-                            
-                            -- Try immediate rebuy
-                            local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-                            if torso then
-                                local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-                                if prompt and prompt:IsA("ProximityPrompt") then
-                                    print("💰 IMMEDIATE REBUY for: " .. charName)
-                                    pcall(function()
-                                        fireproximityprompt(prompt)
-                                    end)
-                                    
-                                                                            -- Clear tracking for this character
-                                        local uid = getCharacterUID(target)
-                                        if uid then
-                                            AutoBuySystem.purchasedCharacters[uid] = nil
-                                            AutoBuySystem.purchaseInProgress[uid] = nil
-                                        end
-                                        
-                                        -- Note: Chat messages like "/CharacterName" are from the game's purchase system, not this script
-                                        -- This is normal behavior and cannot be prevented without breaking the purchase functionality
-                                    end
-                                end
-                                break
-                            end
-                        end
-                end
-            end
-        end
