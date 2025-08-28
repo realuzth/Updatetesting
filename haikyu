@@ -26,7 +26,7 @@ local WEBHOOKS = {
     MYTHIC = "https://discord.com/api/webhooks/1410256210631983144/93LJrnzj-JPqcmFeeCX36bSk0b5mT6DSme1KP6AVEoAdrU9lxYPC1DojGXY1YZEGO02w",
     LEGENDARY = "https://discord.com/api/webhooks/1410282981041639465/oVnjhlYrDMWh0rkHDY47DiYAPYe3vUN7s97wJXkwMNM8N10eDn4yMYR1JaCuZ3R-XkbP"
 }
-
+print("hello")
 -- Enhanced SpawnLocation Detection System
 local SPAWN_LOCATIONS = {
     "SpawnLocation1", "SpawnLocation2", "SpawnLocation3", "SpawnLocation4",
