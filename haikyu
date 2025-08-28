@@ -416,11 +416,20 @@ end
 local function trackCharacterMovement(character)
     if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
     
-    local uid = getCharacterUID(character)
+    local uid = nil
+    pcall(function()
+        uid = getCharacterUID(character)
+    end)
+    
     if not uid then return nil end
     
     local now = tick()
     local position = character.HumanoidRootPart.Position
+    
+    -- Initialize movementTracking table if it doesn't exist
+    if not AutoBuySystem.movementTracking then
+        AutoBuySystem.movementTracking = {}
+    end
     
     if not AutoBuySystem.movementTracking[uid] then
         AutoBuySystem.movementTracking[uid] = {
@@ -464,7 +473,15 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
         return false
     end
     
-    local tracking = trackCharacterMovement(character)
+    if not spawnLocation.Position then
+        return false
+    end
+    
+    local tracking = nil
+    pcall(function()
+        tracking = trackCharacterMovement(character)
+    end)
+    
     if not tracking or not tracking.isMoving or not tracking.direction then
         return false
     end
@@ -489,22 +506,50 @@ end
 
 -- Enhanced function to detect if someone else bought the character
 local function isCharacterHeadingToOtherPlayer()
+    -- Add safety checks to prevent nil errors
     if not AutoBuySystem.currentTarget then return false end
+    if not AutoBuySystem.currentTarget.Parent then return false end
+    if not AutoBuySystem.currentTarget:FindFirstChild("HumanoidRootPart") then return false end
     
     local character = AutoBuySystem.currentTarget
-    local playerSpawn = getPlayerSpawnLocation()
-    local otherSpawns = getOtherSpawnLocations()
+    
+    -- Safe spawn location checks with pcall
+    local playerSpawn = nil
+    local otherSpawns = {}
+    
+    pcall(function()
+        playerSpawn = getPlayerSpawnLocation()
+    end)
+    
+    pcall(function()
+        otherSpawns = getOtherSpawnLocations()
+    end)
+    
+    -- Only proceed if we have valid spawn data
+    if not playerSpawn or not otherSpawns then return false end
     
     -- First check if heading to player's spawn (good)
-    if playerSpawn and isCharacterHeadingToSpawn(character, playerSpawn) then
+    local headingToPlayer = false
+    pcall(function()
+        headingToPlayer = isCharacterHeadingToSpawn(character, playerSpawn)
+    end)
+    
+    if headingToPlayer then
         return false -- Character is heading to our spawn, all good
     end
     
     -- Check if heading to any other spawn location (someone else bought it)
     for _, spawn in ipairs(otherSpawns) do
-        if isCharacterHeadingToSpawn(character, spawn) then
-            print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
-            return true
+        if spawn and spawn.Parent then
+            local headingToOther = false
+            pcall(function()
+                headingToOther = isCharacterHeadingToSpawn(character, spawn)
+            end)
+            
+            if headingToOther then
+                print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
+                return true
+            end
         end
     end
     
