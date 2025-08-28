@@ -26,7 +26,7 @@ local WEBHOOKS = {
     MYTHIC = "https://discord.com/api/webhooks/1410256210631983144/93LJrnzj-JPqcmFeeCX36bSk0b5mT6DSme1KP6AVEoAdrU9lxYPC1DojGXY1YZEGO02w",
     LEGENDARY = "https://discord.com/api/webhooks/1410282981041639465/oVnjhlYrDMWh0rkHDY47DiYAPYe3vUN7s97wJXkwMNM8N10eDn4yMYR1JaCuZ3R-XkbP"
 }
-print("hello")
+
 -- Enhanced SpawnLocation Detection System
 local SPAWN_LOCATIONS = {
     "SpawnLocation1", "SpawnLocation2", "SpawnLocation3", "SpawnLocation4",
@@ -1886,15 +1886,16 @@ function UIManager:minimizeToSquare()
         end
     end
     
-    -- Create the target square (invisible initially)
+    -- Create the target square with improved positioning
     local square = Instance.new("Frame")
     square.Name = "MinimizedSquare"
     square.Size = UDim2.new(0, 0, 0, 0)
-    square.Position = UDim2.new(0.5, 0, 0.5, 0)
+    square.Position = UDim2.new(0, 100, 0, 100) -- Start at top-left instead of center
     square.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
     square.BorderSizePixel = 0
     square.ZIndex = 1000
     square.BackgroundTransparency = 1
+    square.Active = true -- Make it active for input detection
     square.Parent = mainFrame
     
     local corner = Instance.new("UICorner")
@@ -2057,22 +2058,24 @@ function UIManager:makeSquareDraggable(square)
     
     GameState.squareDragging = false
     
+    -- Use the square itself for input detection (entire area clickable)
     square.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             hasMoved = false
             GameState.squareDragging = false
             
-            -- Store the input position and current square position
-            dragStart = input.Position
+            -- Store the mouse position and current square position
+            dragStart = Services.UserInputService:GetMouseLocation()
             startPos = square.Position
         end
     end)
     
-    -- Global mouse movement tracking
+    -- Global mouse movement tracking - works anywhere on screen
     local dragConnection = Services.UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
+            local currentMouse = Services.UserInputService:GetMouseLocation()
+            local delta = currentMouse - dragStart
             
             -- If moved more than 3 pixels, it's a drag
             if not hasMoved and (math.abs(delta.X) > 3 or math.abs(delta.Y) > 3) then
@@ -2101,7 +2104,7 @@ function UIManager:makeSquareDraggable(square)
         end
     end)
     
-    -- Global mouse release tracking
+    -- Global mouse release tracking - works anywhere on screen
     local releaseConnection = Services.UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -2137,6 +2140,7 @@ function UIManager:create()
 
     self.elements = self.elements or {}
 
+    -- Create ScreenGui with improved properties
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "VolleyballVision"
     screenGui.Parent = playerGui
@@ -2146,38 +2150,60 @@ function UIManager:create()
     screenGui.Enabled = true
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
+    -- Create main frame with better responsive sizing
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainContainer"
-    mainFrame.Size = UDim2.new(0, 900, 0, 600)
-    mainFrame.Position = UDim2.new(0.5, -450, 0.5, -300)
+    mainFrame.Size = UDim2.new(0, 950, 0, 650) -- Slightly larger for better content
+    mainFrame.Position = UDim2.new(0.5, -475, 0.5, -325)
     mainFrame.BackgroundTransparency = 0
-    mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Darker for better contrast
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = false
     mainFrame.ZIndex = 1
+    mainFrame.Active = true -- Make it active for better input handling
     mainFrame.Parent = screenGui
 
+    -- Enhanced corner radius
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 16)
+    corner.CornerRadius = UDim.new(0, 20) -- Slightly more rounded
     corner.Parent = mainFrame
 
+    -- Enhanced stroke with glow effect
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 80)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
+    stroke.Color = Color3.fromRGB(80, 120, 255) -- Blue accent color
+    stroke.Thickness = 3
+    stroke.Transparency = 0.2
     stroke.Parent = mainFrame
 
+    -- Improved gradient
     local gradient = Instance.new("UIGradient")
     gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 18))
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 25, 35)),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 25)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 18))
     })
-    gradient.Rotation = 135
+    gradient.Rotation = 145
     gradient.Parent = mainFrame
+
+    -- Add subtle drop shadow effect
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 10, 1, 10)
+    shadow.Position = UDim2.new(0, -5, 0, -5)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.7
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = 0
+    shadow.Parent = mainFrame
+
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 25)
+    shadowCorner.Parent = shadow
 
     self.elements.screenGui = screenGui
     self.elements.mainFrame = mainFrame
 
+    -- Create UI components
     if self.createHeader then self:createHeader() end
     if self.createSidebar then self:createSidebar() end
     if self.createMainPanel then self:createMainPanel() end
@@ -3411,3 +3437,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
+print("hello v1.01")
