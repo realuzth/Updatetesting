@@ -949,6 +949,15 @@ function AutoBuySystem:followTarget(target)
         -- INSTANT REBUY CHECK - Check if someone else bought it
         if isCharacterHeadingToOtherPlayer() then
             print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
+            print("🔄 " .. targetName .. " was bought by someone else - clearing purchase record")
+            
+            -- Clear this character from purchased list so we can buy it again if it respawns
+            local uid = getCharacterUID(target)
+            if uid and self.purchasedCharacters[uid] then
+                self.purchasedCharacters[uid] = nil
+                print("✅ Cleared purchase record for " .. targetName .. " - can rebuy if respawns")
+            end
+            
             self.currentTarget = nil
             self.currentTargetName = nil
             return "rebuy" -- Signal for immediate rebuy
@@ -1025,14 +1034,38 @@ function AutoBuySystem:mainLoop()
                 print("✅ Successfully purchased: " .. target.Name)
                 self.purchasedCharacters[getCharacterUID(target)] = tick()
             elseif result == "rebuy" then
-                print("🔄 Instant rebuy detected - marking target as purchased and searching immediately")
+                print("🔄 INSTANT REBUY TRIGGERED - Someone else bought " .. target.Name .. "!")
+                print("🔍 Searching for next available character immediately...")
+                
                 -- Mark the current target as purchased so we don't target it again
                 self.purchasedCharacters[getCharacterUID(target)] = tick()
-                self.lastRebuyTarget = target
                 self.currentTarget = nil
                 self.currentTargetName = nil
-                -- Immediately search for new target without waiting
-                task.wait(0.1) -- Small delay to let character movement settle
+                
+                -- Force immediate search for next target without any delays
+                task.wait(0.05) -- Tiny delay to let systems update
+                
+                local nextTarget, nextScore = self:findBestTarget()
+                if nextTarget then
+                    print("⚡ FOUND NEW TARGET FOR INSTANT REBUY: " .. nextTarget.Name .. " (score: " .. math.floor(nextScore) .. ")")
+                    self.currentTarget = nextTarget
+                    self.currentTargetName = nextTarget.Name
+                    
+                    -- Immediately start following the new target
+                    print("🏃 Starting immediate follow for: " .. nextTarget.Name)
+                    local rebuyResult = self:followTarget(nextTarget)
+                    
+                    if rebuyResult == true then
+                        print("🎉 INSTANT REBUY SUCCESS: " .. nextTarget.Name)
+                        self.purchasedCharacters[getCharacterUID(nextTarget)] = tick()
+                    else
+                        print("❌ Instant rebuy failed for: " .. nextTarget.Name)
+                    end
+                else
+                    print("❌ No other targets available for instant rebuy")
+                end
+                
+                task.wait(0.1)
                 continue
             end
         else
