@@ -1864,14 +1864,95 @@ function PerformanceMonitor:update(deltaTime)
     end
 end
 
--- UIManager with Minimize Feature
+-- Enhanced UIManager with Modern Design and Volleyball Theme
 local UIManager = {
     elements = {},
     animations = {},
-    searchFilters = nil
+    searchFilters = nil,
+    theme = {
+        primary = Color3.fromRGB(255, 87, 51),     -- Volleyball orange
+        secondary = Color3.fromRGB(45, 45, 55),    -- Dark background
+        accent = Color3.fromRGB(255, 215, 0),      -- Gold accent
+        surface = Color3.fromRGB(35, 35, 45),      -- Card background
+        text = Color3.fromRGB(255, 255, 255),      -- White text
+        textSecondary = Color3.fromRGB(200, 200, 210), -- Light gray text
+        success = Color3.fromRGB(76, 175, 80),     -- Green
+        warning = Color3.fromRGB(255, 193, 7),     -- Yellow
+        error = Color3.fromRGB(244, 67, 54)        -- Red
+    }
 }
 
--- Fixed minimizeToSquare function with proper text timing and working drag
+-- Create volleyball icon for minimized state
+function UIManager:createVolleyballIcon()
+    local volleyball = Instance.new("Frame")
+    volleyball.Name = "VolleyballIcon"
+    volleyball.Size = UDim2.new(0, 80, 0, 80)
+    volleyball.Position = UDim2.new(0, 100, 0, 100)
+    volleyball.BackgroundColor3 = self.theme.primary
+    volleyball.BorderSizePixel = 0
+    volleyball.ZIndex = 1000
+    volleyball.Active = true
+    
+    -- Make it circular
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.5, 0)
+    corner.Parent = volleyball
+    
+    -- Add volleyball pattern
+    local pattern1 = Instance.new("Frame")
+    pattern1.Size = UDim2.new(0, 2, 1, 0)
+    pattern1.Position = UDim2.new(0.5, -1, 0, 0)
+    pattern1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    pattern1.BorderSizePixel = 0
+    pattern1.ZIndex = 1001
+    pattern1.Parent = volleyball
+    
+    local pattern2 = Instance.new("Frame")
+    pattern2.Size = UDim2.new(1, 0, 0, 2)
+    pattern2.Position = UDim2.new(0, 0, 0.5, -1)
+    pattern2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    pattern2.BorderSizePixel = 0
+    pattern2.ZIndex = 1001
+    pattern2.Parent = volleyball
+    
+    -- Add curved lines
+    local curve1 = Instance.new("Frame")
+    curve1.Size = UDim2.new(0.7, 0, 0, 2)
+    curve1.Position = UDim2.new(0.15, 0, 0.25, 0)
+    curve1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    curve1.BorderSizePixel = 0
+    curve1.ZIndex = 1001
+    curve1.Rotation = 45
+    curve1.Parent = volleyball
+    
+    local curve2 = Instance.new("Frame")
+    curve2.Size = UDim2.new(0.7, 0, 0, 2)
+    curve2.Position = UDim2.new(0.15, 0, 0.75, 0)
+    curve2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    curve2.BorderSizePixel = 0
+    curve2.ZIndex = 1001
+    curve2.Rotation = -45
+    curve2.Parent = volleyball
+    
+    -- Add glow effect
+    local glow = Instance.new("Frame")
+    glow.Name = "Glow"
+    glow.Size = UDim2.new(1, 20, 1, 20)
+    glow.Position = UDim2.new(0, -10, 0, -10)
+    glow.BackgroundColor3 = self.theme.primary
+    glow.BackgroundTransparency = 0.8
+    glow.BorderSizePixel = 0
+    glow.ZIndex = 999
+    glow.Parent = volleyball
+    
+    local glowCorner = Instance.new("UICorner")
+    glowCorner.CornerRadius = UDim.new(0.5, 0)
+    glowCorner.Parent = glow
+    
+    return volleyball
+end
+
+-- Enhanced minimize function with volleyball icon
 function UIManager:minimizeToSquare()
     if GameState.isMinimized then return end
     GameState.isMinimized = true
@@ -1886,53 +1967,21 @@ function UIManager:minimizeToSquare()
         end
     end
     
-    -- Create the target square with improved positioning
-    local square = Instance.new("Frame")
-    square.Name = "MinimizedSquare"
-    square.Size = UDim2.new(0, 0, 0, 0)
-    square.Position = UDim2.new(0, 100, 0, 100) -- Start at top-left instead of center
-    square.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-    square.BorderSizePixel = 0
-    square.ZIndex = 1000
-    square.BackgroundTransparency = 1
-    square.Active = true -- Make it active for input detection
-    square.Parent = mainFrame
+    -- Create volleyball icon instead of square
+    local volleyball = self:createVolleyballIcon()
+    volleyball.Size = UDim2.new(0, 0, 0, 0)
+    volleyball.BackgroundTransparency = 1
+    volleyball.Parent = mainFrame
     
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 16)
-    corner.Parent = square
+    -- Hide all volleyball patterns initially
+    for _, child in pairs(volleyball:GetChildren()) do
+        if child:IsA("Frame") then
+            child.BackgroundTransparency = 1
+        end
+    end
     
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 80)
-    stroke.Thickness = 2
-    stroke.Transparency = 1
-    stroke.Parent = square
-    
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 18))
-    })
-    gradient.Rotation = 135
-    gradient.Parent = square
-    
-    -- Text that starts completely hidden
-    local restoreText = Instance.new("TextLabel")
-    restoreText.Size = UDim2.new(1, -10, 1, -10)
-    restoreText.Position = UDim2.new(0, 5, 0, 5)
-    restoreText.BackgroundTransparency = 1
-    restoreText.Text = "Show\nUI"
-    restoreText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    restoreText.Font = Enum.Font.GothamBold
-    restoreText.TextSize = 14
-    restoreText.TextWrapped = true
-    restoreText.ZIndex = 1001
-    restoreText.TextTransparency = 1
-    restoreText.Visible = false -- Start with text completely hidden
-    restoreText.Parent = square
-    
-    -- Black hole shrinking effect for main frame
-    local shrinkTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    -- Smooth shrinking effect for main frame
+    local shrinkTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1
@@ -1940,52 +1989,68 @@ function UIManager:minimizeToSquare()
     
     shrinkTween:Play()
     
-    -- After shrink completes, expand square
+    -- After shrink completes, expand volleyball with bounce
     shrinkTween.Completed:Connect(function()
-        local expandTween = Services.TweenService:Create(square, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        local expandTween = Services.TweenService:Create(volleyball, TweenInfo.new(0.8, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 80, 0, 80),
             Position = UDim2.new(0.5, -40, 0.5, -40),
             BackgroundTransparency = 0
         })
         
-        local strokeTween = Services.TweenService:Create(stroke, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Transparency = 0.3
-        })
-        
         expandTween:Play()
-        strokeTween:Play()
         
-        -- Only show and fade in text after square is completely expanded
-        expandTween.Completed:Connect(function()
-            restoreText.Visible = true
-            local textTween = Services.TweenService:Create(restoreText, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                TextTransparency = 0
-            })
-            textTween:Play()
-        end)
+        -- Animate volleyball patterns appearing
+        task.wait(0.3)
+        for _, child in pairs(volleyball:GetChildren()) do
+            if child:IsA("Frame") and child.Name ~= "Glow" then
+                Services.TweenService:Create(child, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    BackgroundTransparency = 0
+                }):Play()
+            end
+        end
+        
+        -- Add floating animation
+        local floatTween = Services.TweenService:Create(volleyball, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+            Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset - 5)
+        })
+        floatTween:Play()
     end)
     
-    self.elements.minimizedSquare = square
+    self.elements.minimizedVolleyball = volleyball
     
     -- Setup drag and click functionality
-    self:makeSquareDraggable(square)
+    self:makeVolleyballDraggable(volleyball)
     
-    -- Hover effects
-    square.MouseEnter:Connect(function()
-        if not GameState.squareDragging then
-            Services.TweenService:Create(square, TweenInfo.new(0.2), {
-                Size = UDim2.new(0, 85, 0, 85),
-                Position = UDim2.new(square.Position.X.Scale, square.Position.X.Offset - 2.5, square.Position.Y.Scale, square.Position.Y.Offset - 2.5)
+    -- Enhanced hover effects with glow
+    volleyball.MouseEnter:Connect(function()
+        if not GameState.volleyballDragging then
+            Services.TweenService:Create(volleyball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 90, 0, 90),
+                Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset - 5, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset - 5)
             }):Play()
+            
+            local glow = volleyball:FindFirstChild("Glow")
+            if glow then
+                Services.TweenService:Create(glow, TweenInfo.new(0.3), {
+                    BackgroundTransparency = 0.5
+                }):Play()
+            end
         end
     end)
     
-    square.MouseLeave:Connect(function()
-        if not GameState.squareDragging then
-            Services.TweenService:Create(square, TweenInfo.new(0.2), {
+    volleyball.MouseLeave:Connect(function()
+        if not GameState.volleyballDragging then
+            Services.TweenService:Create(volleyball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0, 80, 0, 80),
-                Position = UDim2.new(square.Position.X.Scale, square.Position.X.Offset + 2.5, square.Position.Y.Scale, square.Position.Y.Offset + 2.5)
+                Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset + 5, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset + 5)
             }):Play()
+            
+            local glow = volleyball:FindFirstChild("Glow")
+            if glow then
+                Services.TweenService:Create(glow, TweenInfo.new(0.3), {
+                    BackgroundTransparency = 0.8
+                }):Play()
+            end
         end
     end)
 end
@@ -1995,88 +2060,93 @@ function UIManager:unminimizeFromSquare()
     GameState.isMinimized = false
     
     local mainFrame = self.elements.mainFrame
-    local square = self.elements.minimizedSquare
-    if not mainFrame or not square then return end
+    local volleyball = self.elements.minimizedVolleyball
+    if not mainFrame or not volleyball then return end
     
-    -- Hide text immediately and make square completely invisible
-    local restoreText = square:FindFirstChild("TextLabel")
-    if restoreText then
-        restoreText.Visible = false
+    -- Stop floating animation
+    Services.TweenService:Create(volleyball, TweenInfo.new(0.1), {}):Play()
+    
+    -- Hide volleyball patterns with bounce effect
+    for _, child in pairs(volleyball:GetChildren()) do
+        if child:IsA("Frame") and child.Name ~= "Glow" then
+            Services.TweenService:Create(child, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+                BackgroundTransparency = 1
+            }):Play()
+        end
     end
     
-    -- Hide square's stroke during animation
-    local stroke = square:FindFirstChildOfClass("UIStroke")
-    if stroke then
-        stroke.Transparency = 1
-    end
-    
-    -- Animate the square shrinking with complete transparency
-    local shrinkTween = Services.TweenService:Create(square, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    -- Animate the volleyball shrinking with spin effect
+    local shrinkTween = Services.TweenService:Create(volleyball, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundTransparency = 1
+        BackgroundTransparency = 1,
+        Rotation = 360
     })
     shrinkTween:Play()
     
-    -- Wait for square to shrink, then restore main frame
+    -- Wait for volleyball to shrink, then restore main frame
     shrinkTween.Completed:Connect(function()
         -- Reset main frame to ensure clean state
         mainFrame.BackgroundTransparency = 0
         local mainStroke = mainFrame:FindFirstChildOfClass("UIStroke")
         if mainStroke then
-            mainStroke.Transparency = 0.3
+            mainStroke.Transparency = 0.2
         end
         
-        local restoreTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 900, 0, 600),
-            Position = UDim2.new(0.5, -450, 0.5, -300)
+        local restoreTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 1000, 0, 700),
+            Position = UDim2.new(0.5, -500, 0.5, -350)
         })
         restoreTween:Play()
         
         -- Show UI elements after restore completes
         restoreTween.Completed:Connect(function()
             for _, child in pairs(mainFrame:GetChildren()) do
-                if child.Name ~= "MinimizedSquare" and child:IsA("GuiObject") and child.Name ~= "SettingsPanel" then
+                if child.Name ~= "VolleyballIcon" and child:IsA("GuiObject") and child.Name ~= "SettingsPanel" then
                     child.Visible = true
                 end
             end
             
-            square:Destroy()
-            self.elements.minimizedSquare = nil
-            GameState.squareDragging = false
+            volleyball:Destroy()
+            self.elements.minimizedVolleyball = nil
+            GameState.volleyballDragging = false
         end)
     end)
     
     print("UI restored from minimized state")
 end
 
-function UIManager:makeSquareDraggable(square)
+function UIManager:makeVolleyballDraggable(volleyball)
     local dragging = false
     local dragStart = nil
     local startPos = nil
     local hasMoved = false
     
-    GameState.squareDragging = false
+    GameState.volleyballDragging = false
     
-    -- Global input detection instead of square-specific
+    -- Global input detection for volleyball
     local inputConnection = Services.UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             local mousePos = Services.UserInputService:GetMouseLocation()
-            local squarePos = square.AbsolutePosition
-            local squareSize = square.AbsoluteSize
+            local volleyballPos = volleyball.AbsolutePosition
+            local volleyballSize = volleyball.AbsoluteSize
             
-            -- Check if mouse is over the square
-            if mousePos.X >= squarePos.X and mousePos.X <= squarePos.X + squareSize.X and
-               mousePos.Y >= squarePos.Y and mousePos.Y <= squarePos.Y + squareSize.Y then
+            -- Check if mouse is over the volleyball (circular hit detection)
+            local centerX = volleyballPos.X + volleyballSize.X / 2
+            local centerY = volleyballPos.Y + volleyballSize.Y / 2
+            local radius = volleyballSize.X / 2
+            local distance = math.sqrt((mousePos.X - centerX)^2 + (mousePos.Y - centerY)^2)
+            
+            if distance <= radius then
                 dragging = true
                 hasMoved = false
-                GameState.squareDragging = false
+                GameState.volleyballDragging = false
                 
-                -- Store the mouse position and current square position
+                -- Store the mouse position and current volleyball position
                 dragStart = mousePos
-                startPos = square.Position
+                startPos = volleyball.Position
             end
         end
     end)
@@ -2101,15 +2171,15 @@ function UIManager:makeSquareDraggable(square)
                 local newX = startPos.X.Offset + delta.X
                 local newY = startPos.Y.Offset + delta.Y
                 
-                -- Keep within screen bounds with proper margins (accounting for square size)
-                local squareSize = 80 -- The square is 80x80 pixels
+                -- Keep within screen bounds with proper margins (accounting for volleyball size)
+                local volleyballSize = 80 -- The volleyball is 80x80 pixels
                 local margin = 10 -- Small margin from screen edges
                 
-                newX = math.max(margin, math.min(screenSize.X - squareSize - margin, newX))
-                newY = math.max(margin, math.min(screenSize.Y - squareSize - margin, newY))
+                newX = math.max(margin, math.min(screenSize.X - volleyballSize - margin, newX))
+                newY = math.max(margin, math.min(screenSize.Y - volleyballSize - margin, newY))
                 
                 -- Update position using offset coordinates
-                square.Position = UDim2.new(0, newX, 0, newY)
+                volleyball.Position = UDim2.new(0, newX, 0, newY)
             end
         end
     end)
@@ -2122,22 +2192,22 @@ function UIManager:makeSquareDraggable(square)
                 
                 -- Only trigger unminimize if it wasn't a drag
                 if not hasMoved then
-                    GameState.squareDragging = false
+                    GameState.volleyballDragging = false
                     self:unminimizeFromSquare()
                 else
                     -- Small delay before allowing hover effects again
                     spawn(function()
                         task.wait(0.1)
-                        GameState.squareDragging = false
+                        GameState.volleyballDragging = false
                     end)
                 end
             end
         end
     end)
     
-    -- Clean up connections when square is destroyed
-    square.AncestryChanged:Connect(function()
-        if not square.Parent then
+    -- Clean up connections when volleyball is destroyed
+    volleyball.AncestryChanged:Connect(function()
+        if not volleyball.Parent then
             if inputConnection then inputConnection:Disconnect() end
             if dragConnection then dragConnection:Disconnect() end
             if releaseConnection then releaseConnection:Disconnect() end
@@ -2151,9 +2221,9 @@ function UIManager:create()
 
     self.elements = self.elements or {}
 
-    -- Create ScreenGui with improved properties
+    -- Create modern ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "VolleyballVision"
+    screenGui.Name = "VolleyballVisionPro"
     screenGui.Parent = playerGui
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
@@ -2161,174 +2231,88 @@ function UIManager:create()
     screenGui.Enabled = true
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
-    -- Create main frame with better responsive sizing
+    -- Create modern main frame with volleyball theme
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainContainer"
-    mainFrame.Size = UDim2.new(0, 950, 0, 650) -- Slightly larger for better content
-    mainFrame.Position = UDim2.new(0.5, -475, 0.5, -325)
-    mainFrame.BackgroundTransparency = 0
-    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20) -- Darker for better contrast
+    mainFrame.Size = UDim2.new(0, 1000, 0, 700)
+    mainFrame.Position = UDim2.new(0.5, -500, 0.5, -350)
+    mainFrame.BackgroundColor3 = self.theme.secondary
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = false
     mainFrame.ZIndex = 1
-    mainFrame.Active = true -- Make it active for better input handling
+    mainFrame.Active = true
     mainFrame.Parent = screenGui
 
-    -- Enhanced corner radius
+    -- Modern rounded corners
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 20) -- Slightly more rounded
+    corner.CornerRadius = UDim.new(0, 24)
     corner.Parent = mainFrame
 
-    -- Simple border
+    -- Modern stroke border
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 80)
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
+    stroke.Color = self.theme.primary
+    stroke.Thickness = 3
+    stroke.Transparency = 0.2
     stroke.Parent = mainFrame
 
-    -- Improved gradient
-    local gradient = Instance.new("UIGradient")
-    gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(20, 25, 35)),
-        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 15, 25)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(10, 10, 18))
-    })
-    gradient.Rotation = 145
-    gradient.Parent = mainFrame
-
-    -- Add subtle drop shadow effect
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, 10, 1, 10)
-    shadow.Position = UDim2.new(0, -5, 0, -5)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.7
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
-
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 25)
-    shadowCorner.Parent = shadow
-
+    -- Store references
     self.elements.screenGui = screenGui
     self.elements.mainFrame = mainFrame
 
-    -- Create UI components
-    if self.createHeader then self:createHeader() end
-    if self.createSidebar then self:createSidebar() end
-    if self.createMainPanel then self:createMainPanel() end
-    if self.createFooter then self:createFooter() end
-    if self.createSettingsPanel then
-        self:createSettingsPanel()
-    end
-    if self.makeDraggable then self:makeDraggable() end
+    -- Create all modern UI components
+    self:createModernHeader()
+    self:createModernSidebar()
+    self:createModernMainPanel()
+    self:createModernFooter()
+    self:createModernSettingsPanel()
+    self:createAnimatedBackground()
 
+    -- Make the main frame draggable
+    self:makeDraggable(mainFrame)
+
+    print("🏐 Modern Volleyball Vision UI created successfully!")
     return screenGui
 end
 
-function UIManager:createHeader()
-    local header = Instance.new("Frame")
-    header.Name = "Header"
-    header.Size = UDim2.new(1, 0, 0, 60)
-    header.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-    header.BorderSizePixel = 0
-    header.Parent = self.elements.mainFrame
-
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, 16)
-    headerCorner.Parent = header
-
-    local titleContainer = Instance.new("Frame")
-    titleContainer.Size = UDim2.new(0.6, 0, 1, 0)
-    titleContainer.Position = UDim2.new(0, 20, 0, 0)
-    titleContainer.BackgroundTransparency = 1
-    titleContainer.Parent = header
-
-    local title = Instance.new("TextLabel")
-    title.Name = "Title"
-    title.Size = UDim2.new(1, 0, 0, 30)
-    title.Position = UDim2.new(0, 0, 0, 5)
-    title.BackgroundTransparency = 1
-    title.Text = SCRIPT_NAME
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 20
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = titleContainer
-
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Size = UDim2.new(1, 0, 0, 15)
-    subtitle.Position = UDim2.new(0, 0, 0, 35)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = SCRIPT_VERSION
-    subtitle.TextColor3 = Color3.fromRGB(150, 150, 200)
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextSize = 11
-    subtitle.TextXAlignment = Enum.TextXAlignment.Left
-    subtitle.Parent = titleContainer
-
-    -- Fixed minimize button with no aura
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Name = "MinimizeButton"
-    minimizeButton.Size = UDim2.new(0, 32, 0, 32)
-    minimizeButton.Position = UDim2.new(1, -40, 0.5, -16)
-    minimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    minimizeButton.Text = "−"
-    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.TextSize = 20
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.AutoButtonColor = false  -- This prevents the default aura
-    minimizeButton.Parent = header
-
-    local minCorner = Instance.new("UICorner")
-    minCorner.CornerRadius = UDim.new(0, 6)
-    minCorner.Parent = minimizeButton
-
-    -- Settings button (gear icon)
-    local settingsButton = Instance.new("ImageButton")
-    settingsButton.Name = "SettingsButton"
-    settingsButton.Size = UDim2.new(0, 32, 0, 32)
-    settingsButton.Position = UDim2.new(1, -80, 0.5, -16)
-    settingsButton.BackgroundTransparency = 1
-    settingsButton.Image = "rbxassetid://6031280882"
-    settingsButton.Parent = header
-
-    self.elements.header = header
-    self.elements.title = title
-    self.elements.settingsButton = settingsButton
-    self.elements.minimizeButton = minimizeButton
-
-    -- Connect minimize button only
-    minimizeButton.MouseButton1Click:Connect(function()
-        self:minimizeToSquare()
-    end)
-
-    -- Connect settings button
-    settingsButton.MouseButton1Click:Connect(function()
-        self:toggleSettingsPanel()
-    end)
-
-    -- Manual hover effects to replace AutoButtonColor
-    minimizeButton.MouseEnter:Connect(function()
-        minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    end)
-
-    minimizeButton.MouseLeave:Connect(function()
-        minimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    end)
+-- Update footer with real-time information
+function UIManager:updateFooter()
+    if not self.elements.footer then return end
+    
+    -- Update FPS
+    if self.elements.fpsIndicator then
+        local fps = math.floor(1 / Services.RunService.Heartbeat:Wait())
+        self.elements.fpsIndicator.Text = "FPS: " .. fps
+        
+        -- Color based on performance
+        if fps >= 50 then
+            self.elements.fpsIndicator.TextColor3 = self.theme.success
+        elseif fps >= 30 then
+            self.elements.fpsIndicator.TextColor3 = self.theme.warning
+        else
+            self.elements.fpsIndicator.TextColor3 = self.theme.error
+        end
+    end
+    
+    -- Update status
+    if self.elements.statusIndicator then
+        if GameState.scriptActive then
+            self.elements.statusIndicator.Text = "🟢 Active"
+            self.elements.statusIndicator.TextColor3 = self.theme.success
+        else
+            self.elements.statusIndicator.Text = "🟡 Standby"
+            self.elements.statusIndicator.TextColor3 = self.theme.warning
+        end
+    end
+    
+    -- Update time
+    if self.elements.timeIndicator then
+        self.elements.timeIndicator.Text = "⏰ " .. os.date("%X")
+    end
 end
 
-function UIManager:toggleSettingsPanel()
-    if not self.elements.settingsPanel then return end
-    local p = self.elements.settingsPanel
-    p.Visible = not p.Visible
-end
-
--- Updated createSettingsPanel function - starts hidden
-function UIManager:createSettingsPanel()
-    print("Building settings panel...")
+-- Modern Settings Panel
+function UIManager:createModernSettingsPanel()
+    print("Building modern settings panel...")
 
     gameData.settings = gameData.settings or {}
     gameData.settings.autoBuyEnabled = gameData.settings.autoBuyEnabled or false
@@ -2336,35 +2320,243 @@ function UIManager:createSettingsPanel()
     gameData.settings.autoCollectEnabled = gameData.settings.autoCollectEnabled or false
 
     local panel = Instance.new("Frame")
-    panel.Name = "SettingsPanel"
-    panel.Size = UDim2.new(0, 250, 0, 280)  -- Increased size to fit all content
-    panel.Position = UDim2.new(1, -260, 0, 65)  -- Adjusted position for larger panel
-    panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    panel.Name = "ModernSettingsPanel"
+    panel.Size = UDim2.new(0, 300, 0, 350)
+    panel.Position = UDim2.new(1, -320, 0, 90)
+    panel.BackgroundColor3 = self.theme.surface
     panel.Visible = false
     panel.ZIndex = 50
     panel.Parent = self.elements.mainFrame
 
     local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(60, 60, 80)
-    stroke.Thickness = 1
-    stroke.Transparency = 0.2
+    stroke.Color = self.theme.primary
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
     stroke.Parent = panel
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 16)
     corner.Parent = panel
 
+    -- Add glow effect
+    local glow = Instance.new("Frame")
+    glow.Size = UDim2.new(1, 10, 1, 10)
+    glow.Position = UDim2.new(0, -5, 0, -5)
+    glow.BackgroundColor3 = self.theme.primary
+    glow.BackgroundTransparency = 0.9
+    glow.BorderSizePixel = 0
+    glow.ZIndex = 49
+    glow.Parent = panel
+
+    local glowCorner = Instance.new("UICorner")
+    glowCorner.CornerRadius = UDim.new(0, 20)
+    glowCorner.Parent = glow
+
+    -- Panel header
+    local panelHeader = Instance.new("Frame")
+    panelHeader.Size = UDim2.new(1, 0, 0, 50)
+    panelHeader.BackgroundColor3 = self.theme.primary
+    panelHeader.BorderSizePixel = 0
+    panelHeader.ZIndex = 51
+    panelHeader.Parent = panel
+
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 16)
+    headerCorner.Parent = panelHeader
+
+    local headerTitle = Instance.new("TextLabel")
+    headerTitle.Size = UDim2.new(1, -20, 1, 0)
+    headerTitle.Position = UDim2.new(0, 20, 0, 0)
+    headerTitle.BackgroundTransparency = 1
+    headerTitle.Text = "🏐 Settings"
+    headerTitle.Font = Enum.Font.GothamBold
+    headerTitle.TextSize = 18
+    headerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    headerTitle.TextXAlignment = Enum.TextXAlignment.Left
+    headerTitle.ZIndex = 52
+    headerTitle.Parent = panelHeader
+
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 6)  -- Reduced from 8
+    layout.Padding = UDim.new(0, 10)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = panel
 
     local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 8)     -- Reduced from 10
-    padding.PaddingLeft = UDim.new(0, 8)    -- Reduced from 10
-    padding.PaddingRight = UDim.new(0, 8)   -- Reduced from 10
-    padding.PaddingBottom = UDim.new(0, 8)  -- Added bottom padding
+    padding.PaddingTop = UDim.new(0, 60)
+    padding.PaddingLeft = UDim.new(0, 15)
+    padding.PaddingRight = UDim.new(0, 15)
+    padding.PaddingBottom = UDim.new(0, 15)
     padding.Parent = panel
+
+    self.elements.settingsPanel = panel
+end
+
+-- Create modern sidebar
+function UIManager:createModernSidebar()
+    local sidebar = Instance.new("Frame")
+    sidebar.Name = "ModernSidebar"
+    sidebar.Size = UDim2.new(0, 350, 1, -160)
+    sidebar.Position = UDim2.new(0, 20, 0, 90)
+    sidebar.BackgroundColor3 = self.theme.surface
+    sidebar.BorderSizePixel = 0
+    sidebar.ZIndex = 5
+    sidebar.Parent = self.elements.mainFrame
+    
+    local sidebarCorner = Instance.new("UICorner")
+    sidebarCorner.CornerRadius = UDim.new(0, 20)
+    sidebarCorner.Parent = sidebar
+    
+    local sidebarStroke = Instance.new("UIStroke")
+    sidebarStroke.Color = self.theme.primary
+    sidebarStroke.Thickness = 2
+    sidebarStroke.Transparency = 0.7
+    sidebarStroke.Parent = sidebar
+    
+    -- Sidebar header
+    local sidebarHeader = Instance.new("Frame")
+    sidebarHeader.Size = UDim2.new(1, 0, 0, 50)
+    sidebarHeader.BackgroundColor3 = self.theme.primary
+    sidebarHeader.BorderSizePixel = 0
+    sidebarHeader.ZIndex = 6
+    sidebarHeader.Parent = sidebar
+    
+    local sidebarHeaderCorner = Instance.new("UICorner")
+    sidebarHeaderCorner.CornerRadius = UDim.new(0, 20)
+    sidebarHeaderCorner.Parent = sidebarHeader
+    
+    local sidebarTitle = Instance.new("TextLabel")
+    sidebarTitle.Size = UDim2.new(1, -20, 1, 0)
+    sidebarTitle.Position = UDim2.new(0, 20, 0, 0)
+    sidebarTitle.BackgroundTransparency = 1
+    sidebarTitle.Text = "📊 Character Tracker"
+    sidebarTitle.Font = Enum.Font.GothamBold
+    sidebarTitle.TextSize = 16
+    sidebarTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sidebarTitle.TextXAlignment = Enum.TextXAlignment.Left
+    sidebarTitle.ZIndex = 7
+    sidebarTitle.Parent = sidebarHeader
+    
+    self.elements.sidebar = sidebar
+end
+
+-- Create modern main panel
+function UIManager:createModernMainPanel()
+    local mainPanel = Instance.new("Frame")
+    mainPanel.Name = "ModernMainPanel"
+    mainPanel.Size = UDim2.new(0, 600, 1, -160)
+    mainPanel.Position = UDim2.new(0, 390, 0, 90)
+    mainPanel.BackgroundColor3 = self.theme.surface
+    mainPanel.BorderSizePixel = 0
+    mainPanel.ZIndex = 5
+    mainPanel.Parent = self.elements.mainFrame
+    
+    local mainPanelCorner = Instance.new("UICorner")
+    mainPanelCorner.CornerRadius = UDim.new(0, 20)
+    mainPanelCorner.Parent = mainPanel
+    
+    local mainPanelStroke = Instance.new("UIStroke")
+    mainPanelStroke.Color = self.theme.primary
+    mainPanelStroke.Thickness = 2
+    mainPanelStroke.Transparency = 0.7
+    mainPanelStroke.Parent = mainPanel
+    
+    -- Main panel header
+    local mainPanelHeader = Instance.new("Frame")
+    mainPanelHeader.Size = UDim2.new(1, 0, 0, 50)
+    mainPanelHeader.BackgroundColor3 = self.theme.primary
+    mainPanelHeader.BorderSizePixel = 0
+    mainPanelHeader.ZIndex = 6
+    mainPanelHeader.Parent = mainPanel
+    
+    local mainPanelHeaderCorner = Instance.new("UICorner")
+    mainPanelHeaderCorner.CornerRadius = UDim.new(0, 20)
+    mainPanelHeaderCorner.Parent = mainPanelHeader
+    
+    local mainPanelTitle = Instance.new("TextLabel")
+    mainPanelTitle.Size = UDim2.new(1, -20, 1, 0)
+    mainPanelTitle.Position = UDim2.new(0, 20, 0, 0)
+    mainPanelTitle.BackgroundTransparency = 1
+    mainPanelTitle.Text = "🎮 Game Statistics"
+    mainPanelTitle.Font = Enum.Font.GothamBold
+    mainPanelTitle.TextSize = 16
+    mainPanelTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+    mainPanelTitle.TextXAlignment = Enum.TextXAlignment.Left
+    mainPanelTitle.ZIndex = 7
+    mainPanelTitle.Parent = mainPanelHeader
+    
+    self.elements.mainPanel = mainPanel
+end
+
+-- Create modern footer
+function UIManager:createModernFooter()
+    local footer = Instance.new("Frame")
+    footer.Name = "ModernFooter"
+    footer.Size = UDim2.new(1, 0, 0, 60)
+    footer.Position = UDim2.new(0, 0, 1, -60)
+    footer.BackgroundColor3 = self.theme.surface
+    footer.BorderSizePixel = 0
+    footer.ZIndex = 5
+    footer.Parent = self.elements.mainFrame
+    
+    local footerCorner = Instance.new("UICorner")
+    footerCorner.CornerRadius = UDim.new(0, 24)
+    footerCorner.Parent = footer
+    
+    -- Status indicators
+    local statusContainer = Instance.new("Frame")
+    statusContainer.Size = UDim2.new(1, -40, 1, 0)
+    statusContainer.Position = UDim2.new(0, 20, 0, 0)
+    statusContainer.BackgroundTransparency = 1
+    statusContainer.ZIndex = 6
+    statusContainer.Parent = footer
+    
+    local statusLayout = Instance.new("UIListLayout")
+    statusLayout.FillDirection = Enum.FillDirection.Horizontal
+    statusLayout.Padding = UDim.new(0, 20)
+    statusLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+    statusLayout.Parent = statusContainer
+    
+    -- FPS indicator
+    local fpsIndicator = Instance.new("TextLabel")
+    fpsIndicator.Size = UDim2.new(0, 100, 0, 30)
+    fpsIndicator.BackgroundTransparency = 1
+    fpsIndicator.Text = "FPS: 60"
+    fpsIndicator.Font = Enum.Font.GothamBold
+    fpsIndicator.TextSize = 14
+    fpsIndicator.TextColor3 = self.theme.success
+    fpsIndicator.TextXAlignment = Enum.TextXAlignment.Left
+    fpsIndicator.ZIndex = 7
+    fpsIndicator.Parent = statusContainer
+    
+    -- Status indicator
+    local statusIndicator = Instance.new("TextLabel")
+    statusIndicator.Size = UDim2.new(0, 150, 0, 30)
+    statusIndicator.BackgroundTransparency = 1
+    statusIndicator.Text = "🟢 Active"
+    statusIndicator.Font = Enum.Font.GothamBold
+    statusIndicator.TextSize = 14
+    statusIndicator.TextColor3 = self.theme.success
+    statusIndicator.TextXAlignment = Enum.TextXAlignment.Left
+    statusIndicator.ZIndex = 7
+    statusIndicator.Parent = statusContainer
+    
+    -- Time indicator
+    local timeIndicator = Instance.new("TextLabel")
+    timeIndicator.Size = UDim2.new(0, 200, 0, 30)
+    timeIndicator.BackgroundTransparency = 1
+    timeIndicator.Text = "⏰ " .. os.date("%X")
+    timeIndicator.Font = Enum.Font.Gotham
+    timeIndicator.TextSize = 14
+    timeIndicator.TextColor3 = self.theme.textSecondary
+    timeIndicator.TextXAlignment = Enum.TextXAlignment.Left
+    timeIndicator.ZIndex = 7
+    timeIndicator.Parent = statusContainer
+    
+    self.elements.footer = footer
+    self.elements.fpsIndicator = fpsIndicator
+    self.elements.statusIndicator = statusIndicator
+    self.elements.timeIndicator = timeIndicator
+end
 
     local function makeSwitch(labelText, settingKey, callback, order)
         local container = Instance.new("Frame")
@@ -3448,4 +3640,3 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("idk")
