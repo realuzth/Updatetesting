@@ -54,10 +54,14 @@ function WebhookManager:sendWebhook(webhookUrl, data)
         })
     end)
     
-    if success and response.StatusCode == 200 then
+    if success and response and response.StatusCode == 200 then
         print("✅ Webhook sent successfully")
     else
-        warn("❌ Failed to send webhook: " .. tostring(response))
+        local errorMsg = "Unknown error"
+        if response then
+            errorMsg = tostring(response.StatusCode or "No status code") .. " - " .. tostring(response.StatusMessage or "No message")
+        end
+        warn("❌ Failed to send webhook: " .. errorMsg)
     end
 end
 
@@ -931,7 +935,9 @@ function AutoBuySystem:followTarget(target)
         -- INSTANT REBUY CHECK - Check if someone else bought it
         if isCharacterHeadingToOtherPlayer() then
             print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
-            return false -- Exit this follow to allow immediate rebuy
+            self.currentTarget = nil
+            self.currentTargetName = nil
+            return "rebuy" -- Signal for immediate rebuy
         end
 
         if not target.Parent or not target:FindFirstChild("HumanoidRootPart") then
@@ -990,11 +996,14 @@ function AutoBuySystem:mainLoop()
         if target then
             print("🎯 New best target found: " .. target.Name .. " (score: " .. math.floor(score) .. ")")
             self.currentTarget = target
-            local success = self:followTarget(target)
+            local result = self:followTarget(target)
             
-            if success then
+            if result == true then
                 print("✅ Successfully purchased: " .. target.Name)
                 self.purchasedCharacters[getCharacterUID(target)] = tick()
+            elseif result == "rebuy" then
+                print("🔄 Instant rebuy detected - searching for new target immediately")
+                continue -- Skip wait and immediately look for new target
             end
         else
             self.currentTargetName = nil
