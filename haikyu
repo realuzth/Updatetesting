@@ -508,76 +508,56 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Enhanced function to detect if someone else bought the character based on spawn location movement
-local function isCharacterHeadingToOtherPlayer()
-    -- Add safety checks to prevent nil errors
+-- Real-time purchase detection by monitoring proximity prompt interactions
+local function isCharacterPurchasedByOther()
     if not AutoBuySystem.currentTarget then 
         return false 
     end
     if not AutoBuySystem.currentTarget.Parent then 
         return false 
     end
-    if not AutoBuySystem.currentTarget:FindFirstChild("HumanoidRootPart") then 
-        return false 
-    end
     
     local character = AutoBuySystem.currentTarget
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
+    if not torso then return false end
     
-    -- Get movement tracking data
-    local tracking = trackCharacterMovement(character)
-    if not tracking or not tracking.isMoving then
-        return false -- Only check when character is actually moving
+    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
+    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
+    
+    -- Check if prompt is disabled (someone purchased it)
+    if not prompt.Enabled then
+        print("⚡ PURCHASE DETECTED: " .. character.Name .. " prompt is disabled - someone else bought it!")
+        return true
     end
     
-    -- Get all spawn locations
-    local playerSpawn = nil
-    local otherSpawns = {}
-    
-    pcall(function()
-        playerSpawn = getPlayerSpawnLocation()
-    end)
-    
-    pcall(function()
-        otherSpawns = getOtherSpawnLocations()
-    end)
-    
-    if not playerSpawn then 
-        print("🔍 " .. character.Name .. " - can't find player spawn locations")
-        return false -- Don't assume anything if we can't find spawns
+    -- Monitor for rapid prompt state changes (purchase in progress)
+    local uid = getCharacterUID(character)
+    if not AutoBuySystem.promptStates then
+        AutoBuySystem.promptStates = {}
     end
     
-    local charPos = character.HumanoidRootPart.Position
+    local currentTime = tick()
+    local promptState = {
+        enabled = prompt.Enabled,
+        time = currentTime
+    }
     
-    -- First check if heading to our spawn (good - continue following)
-    local playerSpawnPos = playerSpawn.Position
-    local distanceToPlayerSpawn = (playerSpawnPos - charPos).Magnitude
-    local directionToPlayerSpawn = (playerSpawnPos - charPos).Unit
-    local alignmentToPlayer = tracking.direction:Dot(directionToPlayerSpawn)
-    
-    -- If clearly heading to our spawn, continue following
-    if distanceToPlayerSpawn < 200 and alignmentToPlayer > 0.6 then
-        print("✅ " .. character.Name .. " is heading to OUR spawn (alignment: " .. math.floor(alignmentToPlayer * 100) .. "%) - continuing follow")
+    if not AutoBuySystem.promptStates[uid] then
+        AutoBuySystem.promptStates[uid] = promptState
         return false
     end
     
-    -- Check if heading to any OTHER spawn location
-    for i, spawn in ipairs(otherSpawns) do
-        if spawn and spawn.Parent and spawn.Position then
-            local otherSpawnPos = spawn.Position
-            local distanceToOtherSpawn = (otherSpawnPos - charPos).Magnitude
-            local directionToOtherSpawn = (otherSpawnPos - charPos).Unit
-            local alignmentToOther = tracking.direction:Dot(directionToOtherSpawn)
-            
-            -- If character is clearly heading to another spawn
-            if distanceToOtherSpawn < 200 and alignmentToOther > 0.6 then
-                print("⚡ " .. character.Name .. " is heading to ANOTHER PLAYER'S spawn (spawn " .. i .. ", alignment: " .. math.floor(alignmentToOther * 100) .. "%) - INSTANT REBUY!")
-                return true
-            end
-        end
+    local lastState = AutoBuySystem.promptStates[uid]
+    
+    -- If prompt was enabled but now disabled (someone just bought it)
+    if lastState.enabled and not prompt.Enabled then
+        print("⚡ INSTANT PURCHASE DETECTED: " .. character.Name .. " was just bought by someone else!")
+        AutoBuySystem.promptStates[uid] = promptState
+        return true
     end
     
-    -- If character is moving but not clearly heading to any spawn, keep monitoring
-    print("🔍 " .. character.Name .. " - moving but direction unclear (player alignment: " .. math.floor(alignmentToPlayer * 100) .. "%) - continue monitoring")
+    -- Update state
+    AutoBuySystem.promptStates[uid] = promptState
     return false
 end
 
@@ -954,7 +934,7 @@ function AutoBuySystem:followTarget(target)
         end
 
         -- INSTANT REBUY CHECK - Check if someone else bought it
-        if isCharacterHeadingToOtherPlayer() then
+        if isCharacterPurchasedByOther() then
             print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
             print("🔄 " .. targetName .. " was bought by someone else - clearing purchase record")
             
