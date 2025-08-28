@@ -458,7 +458,7 @@ local function trackCharacterMovement(character)
     return tracking
 end
 
--- Check if character is heading towards a specific spawn location - MORE ACCURATE DETECTION
+-- Check if character is heading towards a specific spawn location
 local function isCharacterHeadingToSpawn(character, spawnLocation)
     if not character or not spawnLocation or not character:FindFirstChild("HumanoidRootPart") then
         return false
@@ -473,25 +473,25 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     local spawnPos = spawnLocation.Position
     local distanceToSpawn = (spawnPos - charPos).Magnitude
     
-    -- More accurate distance check - must be close to spawn
-    if distanceToSpawn > 25 then -- Reduced from 50 to 25 for more accuracy
+    -- If too far away, not heading there
+    if distanceToSpawn > CONFIG.SPAWN_CHECK_DISTANCE then
         return false
     end
     
     -- Calculate direction to spawn
     local directionToSpawn = (spawnPos - charPos).Unit
     
-    -- More strict alignment check - must be heading directly to spawn
+    -- Check if movement direction aligns with spawn direction (dot product > 0.7 means roughly same direction)
     local alignment = tracking.direction:Dot(directionToSpawn)
     
-    -- Increased threshold from 0.7 to 0.85 for more precise detection
-    return alignment > 0.85 and distanceToSpawn < 25
+    return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Enhanced function to detect if someone else bought the character - INSTANT REBUY
-local function isCharacterHeadingToOtherPlayer(character)
-    if not character then return false end
+-- Enhanced function to detect if someone else bought the character
+local function isCharacterHeadingToOtherPlayer()
+    if not AutoBuySystem.currentTarget then return false end
     
+    local character = AutoBuySystem.currentTarget
     local playerSpawn = getPlayerSpawnLocation()
     local otherSpawns = getOtherSpawnLocations()
     
@@ -503,30 +503,7 @@ local function isCharacterHeadingToOtherPlayer(character)
     -- Check if heading to any other spawn location (someone else bought it)
     for _, spawn in ipairs(otherSpawns) do
         if isCharacterHeadingToSpawn(character, spawn) then
-            print("🔍 INSTANT REBUY: " .. character.Name .. " heading to another player's base - triggering immediate rebuy")
-            
-            -- Clear purchase records for this character type to allow instant rebuy
-            local characterName = character.Name
-            if AutoBuySystem.characterInstances[characterName] then
-                for uid, _ in pairs(AutoBuySystem.characterInstances[characterName]) do
-                    AutoBuySystem.purchasedCharacters[uid] = nil
-                    AutoBuySystem.purchaseInProgress[uid] = nil
-                end
-                AutoBuySystem.characterInstances[characterName] = {}
-            end
-            
-            -- Trigger immediate rebuy by finding new instance
-            spawn(function()
-                task.wait(0.1) -- Small delay to let character move
-                local newTarget = workspace:FindFirstChild(characterName)
-                if newTarget and newTarget ~= character then
-                    print("⚡ INSTANT REBUY: Found new " .. characterName .. " - attempting immediate purchase")
-                    AutoBuySystem.currentTarget = newTarget
-                    AutoBuySystem.currentTargetName = characterName
-                    AutoBuySystem:followTarget(newTarget)
-                end
-            end)
-            
+            print("🔍 Detected " .. character.Name .. " heading to another player's spawn - someone else bought it")
             return true
         end
     end
@@ -871,6 +848,7 @@ function AutoBuySystem:findBestTarget()
                 bestTarget = target
             end
         end
+    end
     
     return bestTarget, bestScore
 end
@@ -906,9 +884,9 @@ function AutoBuySystem:followTarget(target)
         end
 
         -- INSTANT REBUY CHECK - Check if someone else bought it
-        if isCharacterHeadingToOtherPlayer(target) then
+        if isCharacterHeadingToOtherPlayer() then
             print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
-            return false -- Exit this follow to allow rebuy
+            return false -- Exit this follow to allow immediate rebuy
         end
 
         if not target.Parent or not target:FindFirstChild("HumanoidRootPart") then
@@ -967,7 +945,12 @@ function AutoBuySystem:mainLoop()
         if target then
             print("🎯 New best target found: " .. target.Name .. " (score: " .. math.floor(score) .. ")")
             self.currentTarget = target
-            self:followTarget(target)
+            local success = self:followTarget(target)
+            
+            if success then
+                print("✅ Successfully purchased: " .. target.Name)
+                self.purchasedCharacters[getCharacterUID(target)] = tick()
+            end
         else
             self.currentTargetName = nil
             -- Clean up old tracking data periodically
@@ -979,10 +962,12 @@ function AutoBuySystem:mainLoop()
                     end
                 end
             end
-            task.wait(2)
+            if humanoid then
+                humanoid:MoveTo(humanoidRootPart.Position)
+            end
         end
         
-        task.wait(0.7)
+        task.wait(0.5) -- Quick loop for instant rebuy
     end
     
     print("🛑 Auto Buy main loop stopped")
@@ -1883,7 +1868,7 @@ function UIManager:makeSquareDraggable(square)
         end
     end)
     
-    -- Global mouse movement tracking - ALLOW DRAGGING ANYWHERE ON SCREEN
+    -- Global mouse movement tracking
     local dragConnection = Services.UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
             local delta = input.Position - dragStart
@@ -1902,11 +1887,10 @@ function UIManager:makeSquareDraggable(square)
                 local newX = startPos.X.Offset + delta.X
                 local newY = startPos.Y.Offset + delta.Y
                 
-                -- Allow dragging ANYWHERE on screen - removed restrictions
+                -- Keep within screen bounds with proper margins (accounting for square size)
                 local squareSize = 80 -- The square is 80x80 pixels
-                local margin = 5 -- Very small margin
+                local margin = 10 -- Small margin from screen edges
                 
-                -- Allow full screen movement
                 newX = math.max(margin, math.min(screenSize.X - squareSize - margin, newX))
                 newY = math.max(margin, math.min(screenSize.Y - squareSize - margin, newY))
                 
@@ -1997,39 +1981,12 @@ function UIManager:create()
     if self.createSidebar then self:createSidebar() end
     if self.createMainPanel then self:createMainPanel() end
     if self.createFooter then self:createFooter() end
-    self:createSettingsPanel()
-    
-    print("✅ UI Created Successfully")
-    return screenGui
-end
+    if self.createSettingsPanel then
+        self:createSettingsPanel()
+    end
+    if self.makeDraggable then self:makeDraggable() end
 
--- Add auto-buy status indicator to footer
-function UIManager:updateAutoBuyStatus()
-    local footer = self.elements.footer
-    if not footer then return end
-    
-    local statusIndicator = footer:FindFirstChild("AutoBuyStatus")
-    if not statusIndicator then
-        statusIndicator = Instance.new("TextLabel")
-        statusIndicator.Name = "AutoBuyStatus"
-        statusIndicator.Size = UDim2.new(0, 150, 1, 0)
-        statusIndicator.Position = UDim2.new(1, -160, 0, 0)
-        statusIndicator.BackgroundTransparency = 1
-        statusIndicator.Font = Enum.Font.GothamBold
-        statusIndicator.TextSize = 14
-        statusIndicator.TextXAlignment = Enum.TextXAlignment.Right
-        statusIndicator.ZIndex = 10
-        statusIndicator.Parent = footer
-    end
-    
-    -- Update status based on auto-buy state
-    if gameData.settings.autoBuyEnabled then
-        statusIndicator.Text = "🟢 AUTO-BUY: ON"
-        statusIndicator.TextColor3 = Color3.fromRGB(0, 255, 0)
-    else
-        statusIndicator.Text = "🔴 AUTO-BUY: OFF"
-        statusIndicator.TextColor3 = Color3.fromRGB(255, 0, 0)
-    end
+    return screenGui
 end
 
 function UIManager:createHeader()
@@ -2267,8 +2224,6 @@ function UIManager:createSettingsPanel()
 
     makeSwitch("Auto Buy", "autoBuyEnabled", function()
         AutoBuySystem:toggle()
-        -- Update status indicator when toggled
-        UIManager:updateAutoBuyStatus()
     end, 1)
 
     makeSwitch("Auto Lock Base", "autoLockEnabled", function()
@@ -2769,12 +2724,10 @@ function UIManager:updateCharacterList()
             scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
             scrollFrame.Parent = parent
             
-            self.elements.footer = footer
-            self.elements.statusContainer = statusContainer
+            self.elements.trackingScroll = scrollFrame
+            self.elements.trackingRows = {}
             
-            self:updateFooter()
-            -- Initialize auto-buy status indicator
-            self:updateAutoBuyStatus()
+            self:populateTrackingRows()
         end
 
         function UIManager:populateTrackingRows()
