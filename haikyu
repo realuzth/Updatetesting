@@ -77,24 +77,64 @@ function WebhookManager:notifyCharacterSpawn(characterName, rarity, serverId)
     end
     self.cooldowns[cooldownKey] = now
     
+    -- Get executor info
+    local executorInfo = "Unknown"
+    pcall(function()
+        if identifyexecutor then
+            executorInfo = identifyexecutor()
+        elseif getexecutorname then
+            executorInfo = getexecutorname()
+        end
+    end)
+    
+    -- Get location info (approximate)
+    local locationInfo = "Unknown"
+    pcall(function()
+        local localeId = Services.LocalizationService.RobloxLocaleId
+        locationInfo = localeId or "Unknown"
+    end)
+    
     local embed = {
         title = "🎯 " .. rarity .. " Character Spawned!",
-        description = "**" .. characterName .. "** has spawned in the server!",
+        description = "**" .. characterName .. "** has spawned!\n\n```\nServer ID: " .. tostring(serverId) .. "\n```\n*Click to copy server ID above*",
         color = rarity == "Secret" and 16766566 or 
                 rarity == "Awakened" and 16711935 or
                 rarity == "Mythic" and 16711782 or
                 rarity == "Legendary" and 16763980 or 6591981,
         fields = {
             {
-                name = "Server ID",
-                value = tostring(serverId),
+                name = "📍 Server Info",
+                value = "```\n" .. tostring(serverId) .. "\n```",
                 inline = true
             },
             {
-                name = "Time",
-                value = os.date("%X"),
+                name = "👤 Player",
+                value = Services.Players.LocalPlayer.Name,
+                inline = true
+            },
+            {
+                name = "🕐 Time",
+                value = os.date("%X") .. " (" .. os.date("%Z") .. ")",
+                inline = true
+            },
+            {
+                name = "💻 Executor",
+                value = executorInfo,
+                inline = true
+            },
+            {
+                name = "🌍 Location",
+                value = locationInfo,
+                inline = true
+            },
+            {
+                name = "🎮 Game",
+                value = "Volleyball Vision",
                 inline = true
             }
+        },
+        footer = {
+            text = "Volleyball Vision Enhanced • " .. os.date("%B %d, %Y")
         },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
     }
@@ -109,22 +149,78 @@ function WebhookManager:notifyCharacterSpawn(characterName, rarity, serverId)
 end
 
 function WebhookManager:notifyScriptExecution()
+    -- Get executor info
+    local executorInfo = "Unknown"
+    pcall(function()
+        if identifyexecutor then
+            executorInfo = identifyexecutor()
+        elseif getexecutorname then
+            executorInfo = getexecutorname()
+        end
+    end)
+    
+    -- Get location info (approximate)
+    local locationInfo = "Unknown"
+    local countryCode = "Unknown"
+    pcall(function()
+        local localeId = Services.LocalizationService.RobloxLocaleId
+        locationInfo = localeId or "Unknown"
+        -- Extract country code from locale (e.g., "en-US" -> "US")
+        if localeId and string.find(localeId, "-") then
+            countryCode = string.upper(string.sub(localeId, string.find(localeId, "-") + 1))
+        end
+    end)
+    
+    -- Get system time info
+    local timeZone = os.date("%Z") or "Unknown"
+    local fullTime = os.date("%A, %B %d, %Y at %I:%M %p") .. " (" .. timeZone .. ")"
+    
+    local serverId = tostring(game.JobId)
+    
     local data = {
         embeds = {{
-            title = "🚀 Volleyball Vision Perfect Started",
-            description = "Enhanced perfect script is now running!",
+            title = "🚀 Volleyball Vision Enhanced - Script Started",
+            description = "Enhanced script is now running!\n\n```\nServer ID: " .. serverId .. "\n```\n*Click to copy server ID above*",
             color = 3066993,
             fields = {
                 {
-                    name = "Player",
+                    name = "📍 Server Info",
+                    value = "```\n" .. serverId .. "\n```",
+                    inline = true
+                },
+                {
+                    name = "👤 Player",
                     value = Services.Players.LocalPlayer.Name,
                     inline = true
                 },
                 {
-                    name = "Server ID", 
-                    value = tostring(game.JobId),
+                    name = "💻 Executor",
+                    value = executorInfo,
+                    inline = true
+                },
+                {
+                    name = "🌍 Location",
+                    value = locationInfo .. " " .. (countryCode ~= "Unknown" and "(" .. countryCode .. ")" or ""),
+                    inline = true
+                },
+                {
+                    name = "🕐 Execution Time",
+                    value = fullTime,
+                    inline = false
+                },
+                {
+                    name = "🎮 Game Info",
+                    value = "**Volleyball Vision**\nPlace ID: " .. tostring(game.PlaceId),
+                    inline = true
+                },
+                {
+                    name = "📊 Script Features",
+                    value = "• Auto Character Tracking\n• Enhanced UI System\n• Webhook Notifications\n• Auto Buy System",
                     inline = true
                 }
+            },
+            footer = {
+                text = "Volleyball Vision Enhanced • Executed successfully"
             },
             timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
         }}
