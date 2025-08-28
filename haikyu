@@ -1010,14 +1010,30 @@ function AutoBuySystem:mainLoop()
         if target then
             print("🎯 New best target found: " .. target.Name .. " (score: " .. math.floor(score) .. ")")
             self.currentTarget = target
+            
+            -- Check if this target is the same as the one we just detected as bought by someone else
+            if self.lastRebuyTarget and self.lastRebuyTarget == target then
+                print("⚠️ Skipping same target that triggered rebuy: " .. target.Name)
+                self.lastRebuyTarget = nil
+                task.wait(0.5)
+                continue
+            end
+            
             local result = self:followTarget(target)
             
             if result == true then
                 print("✅ Successfully purchased: " .. target.Name)
                 self.purchasedCharacters[getCharacterUID(target)] = tick()
             elseif result == "rebuy" then
-                print("🔄 Instant rebuy detected - searching for new target immediately")
-                continue -- Skip wait and immediately look for new target
+                print("🔄 Instant rebuy detected - marking target as purchased and searching immediately")
+                -- Mark the current target as purchased so we don't target it again
+                self.purchasedCharacters[getCharacterUID(target)] = tick()
+                self.lastRebuyTarget = target
+                self.currentTarget = nil
+                self.currentTargetName = nil
+                -- Immediately search for new target without waiting
+                task.wait(0.1) -- Small delay to let character movement settle
+                continue
             end
         else
             self.currentTargetName = nil
