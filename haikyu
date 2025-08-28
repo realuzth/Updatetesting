@@ -1,9 +1,9 @@
--- Volleyball Vision v1.0
+-- Volleyball Vision v1.01
 -- Enhanced character tracking system for Haikyuu-style games
 -- Created by uzth
 
 local SCRIPT_NAME = "Volleyball Vision"
-local SCRIPT_VERSION = "made by uzth"
+local SCRIPT_VERSION = "v1.01"
 
 repeat task.wait() until game:IsLoaded()
 
@@ -68,34 +68,68 @@ function WebhookManager:notifyCharacterSpawn(characterName, rarity, serverId)
     -- Prevent spam - cooldown per character
     local cooldownKey = characterName .. "_" .. rarity
     local now = tick()
+    
+    -- Check cooldown (30 seconds per character per rarity)
     if self.cooldowns[cooldownKey] and (now - self.cooldowns[cooldownKey]) < 30 then
         return
     end
+    
     self.cooldowns[cooldownKey] = now
     
+    local webhookUrl = WEBHOOKS[rarity:upper()]
+    if not webhookUrl then return end
+    
+    local player = Services.Players.LocalPlayer
+    local gameId = tostring(game.PlaceId)
+    local playerCount = #Services.Players:GetPlayers()
+    local maxPlayers = Services.Players.MaxPlayers
+    
+    local rarityColors = {
+        Secret = 16711680,    -- Red
+        Awakened = 16776960,  -- Gold
+        Mythic = 8388736,     -- Purple
+        Legendary = 16753920  -- Orange
+    }
+    
+    local rarityEmojis = {
+        Secret = "🔴",
+        Awakened = "🟡", 
+        Mythic = "🟣",
+        Legendary = "🟠"
+    }
+    
     local embed = {
-        title = "🎯 " .. rarity .. " Character Spawned!",
-        description = "**" .. characterName .. "** has spawned in the server!",
-        color = rarity == "Secret" and 16766566 or 
-                rarity == "Awakened" and 16711935 or
-                rarity == "Mythic" and 16711782 or
-                rarity == "Legendary" and 16763980 or 6591981,
+        title = rarityEmojis[rarity] .. " " .. rarity .. " Character Spawned!",
+        description = "**" .. characterName .. "** has spawned in the server!\n\n" ..
+                     "**Detected by:** " .. player.Name .. "\n" ..
+                     "**Game:** " .. (game.Name or "Unknown Game"),
+        color = rarityColors[rarity] or 3447003,
         fields = {
             {
-                name = "Server ID",
-                value = tostring(serverId),
-                inline = true
+                name = "📋 Server Details",
+                value = "```\nServer ID: " .. serverId .. "\nGame ID: " .. gameId .. "\nPlayers: " .. playerCount .. "/" .. maxPlayers .. "\n```",
+                inline = false
             },
             {
-                name = "Time",
-                value = os.date("%X"),
-                inline = true
+                name = "🎯 Character Info",
+                value = "```\nName: " .. characterName .. "\nRarity: " .. rarity .. "\nSpawn Time: " .. os.date("%H:%M:%S UTC") .. "\n```",
+                inline = false
+            },
+            {
+                name = "🔧 Script Info",
+                value = "```\nVersion: " .. SCRIPT_VERSION .. "\nDetector: " .. player.Name .. "\n```",
+                inline = false
             }
+        },
+        footer = {
+            text = "Volleyball Vision • Character Detection System",
+            icon_url = "https://cdn.discordapp.com/emojis/1234567890123456789.png"
         },
         timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
     }
     
     local data = {
+        content = "🚨 **" .. rarity:upper() .. " ALERT** 🚨",
         embeds = {embed}
     }
     
@@ -105,30 +139,41 @@ function WebhookManager:notifyCharacterSpawn(characterName, rarity, serverId)
 end
 
 function WebhookManager:notifyScriptExecution()
+    local player = Services.Players.LocalPlayer
+    local serverId = tostring(game.JobId)
+    local gameId = tostring(game.PlaceId)
+    local playerCount = #Services.Players:GetPlayers()
+    local maxPlayers = Services.Players.MaxPlayers
+    
     local data = {
+        content = "🚀 **Volleyball Vision Script Started**",
         embeds = {{
-            title = "🚀 Volleyball Vision Perfect Started",
-            description = "Enhanced perfect script is now running!",
-            color = 3066993,
+            title = "🎮 Script Execution - " .. SCRIPT_VERSION,
+            description = "**Player:** " .. player.Name .. " (ID: " .. player.UserId .. ")\n" ..
+                         "**Game:** " .. (game.Name or "Unknown Game") .. "\n" ..
+                         "**Players:** " .. playerCount .. "/" .. maxPlayers,
+            color = 3447003,
             fields = {
                 {
-                    name = "Player",
-                    value = Services.Players.LocalPlayer.Name,
-                    inline = true
+                    name = "📋 Server Information",
+                    value = "```\nServer ID: " .. serverId .. "\nGame ID: " .. gameId .. "\n```",
+                    inline = false
                 },
                 {
-                    name = "Server ID", 
-                    value = tostring(game.JobId),
-                    inline = true
+                    name = "🔧 Script Details",
+                    value = "```\nVersion: " .. SCRIPT_VERSION .. "\nExecutor: " .. player.Name .. "\nTimestamp: " .. os.date("%Y-%m-%d %H:%M:%S UTC") .. "\n```",
+                    inline = false
                 }
+            },
+            footer = {
+                text = "Volleyball Vision • Made by uzth",
+                icon_url = "https://cdn.discordapp.com/emojis/1234567890123456789.png"
             },
             timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ")
         }}
     }
     
-    spawn(function()
-        self:sendWebhook(WEBHOOKS.SCRIPT_EXECUTION, data)
-    end)
+    self:sendWebhook(WEBHOOKS.SCRIPT_EXECUTION, data)
 end
 
 -- SERVER TELEPORT SYSTEM (Above auto buy in settings as requested)
@@ -2224,14 +2269,13 @@ function UIManager:create()
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainContainer"
-    mainFrame.Size = UDim2.new(0, 900, 0, 600)
-    mainFrame.Position = UDim2.new(0.5, -450, 0.5, -300)
-    mainFrame.BackgroundTransparency = 0
-    mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    mainFrame.Name = "VolleyballVision"
+    mainFrame.Size = UDim2.new(0, 850, 0, 650)
+    mainFrame.Position = UDim2.new(0.5, -425, 0.5, -325)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
     mainFrame.BorderSizePixel = 0
-    mainFrame.ClipsDescendants = false
-    mainFrame.ZIndex = 1
+    mainFrame.Active = true
+    mainFrame.Draggable = true
     mainFrame.Parent = screenGui
 
     local corner = Instance.new("UICorner")
@@ -2293,7 +2337,7 @@ function UIManager:createHeader()
     title.Text = SCRIPT_NAME
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.GothamBold
-    title.TextSize = 20
+    title.TextSize = 22
     title.TextXAlignment = Enum.TextXAlignment.Left
     title.Parent = titleContainer
 
@@ -2301,10 +2345,10 @@ function UIManager:createHeader()
     subtitle.Size = UDim2.new(1, 0, 0, 15)
     subtitle.Position = UDim2.new(0, 0, 0, 35)
     subtitle.BackgroundTransparency = 1
-    subtitle.Text = SCRIPT_VERSION
-    subtitle.TextColor3 = Color3.fromRGB(150, 150, 200)
+    subtitle.Text = SCRIPT_VERSION .. " • Enhanced Auto-Buy & Tracking"
+    subtitle.TextColor3 = Color3.fromRGB(150, 200, 255)
     subtitle.Font = Enum.Font.Gotham
-    subtitle.TextSize = 11
+    subtitle.TextSize = 12
     subtitle.TextXAlignment = Enum.TextXAlignment.Left
     subtitle.Parent = titleContainer
 
@@ -2458,6 +2502,7 @@ function UIManager:createSettingsPanel()
 
     local teleportLabel = Instance.new("TextLabel")
     teleportLabel.Size = UDim2.new(1, 0, 0, 20)
+    teleportLabel.Position = UDim2.new(0, 0, 0, 0)
     teleportLabel.BackgroundTransparency = 1
     teleportLabel.Text = "Server Teleport"
     teleportLabel.Font = Enum.Font.GothamBold
@@ -2564,17 +2609,39 @@ function UIManager:createSettingsPanel()
         AutoCollect:toggle()
     end, 3)
 
-    -- Clear Data button
+    -- Clear Data button (properly sized and styled within panel)
     local clearBtn = Instance.new("TextButton")
-    clearBtn.Size = UDim2.new(1, 0, 0, 30)
+    clearBtn.Size = UDim2.new(1, -20, 0, 35)
+    clearBtn.Position = UDim2.new(0, 10, 0, 0)
     clearBtn.LayoutOrder = 4
-    clearBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    clearBtn.TextColor3 = Color3.new(1, 1, 1)
-    clearBtn.Text = "Clear Data"
+    clearBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+    clearBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    clearBtn.Text = "🗑️ Clear All Data"
     clearBtn.Font = Enum.Font.GothamBold
-    clearBtn.TextSize = 12
+    clearBtn.TextSize = 13
     clearBtn.ZIndex = 53
     clearBtn.Parent = panel
+    
+    -- Add corner radius and hover effects
+    local clearBtnCorner = Instance.new("UICorner")
+    clearBtnCorner.CornerRadius = UDim.new(0, 6)
+    clearBtnCorner.Parent = clearBtn
+    
+    local clearBtnStroke = Instance.new("UIStroke")
+    clearBtnStroke.Color = Color3.fromRGB(180, 40, 40)
+    clearBtnStroke.Thickness = 1
+    clearBtnStroke.Parent = clearBtn
+
+    -- Hover effects
+    clearBtn.MouseEnter:Connect(function()
+        clearBtn.BackgroundColor3 = Color3.fromRGB(240, 80, 80)
+        clearBtnStroke.Color = Color3.fromRGB(200, 60, 60)
+    end)
+    
+    clearBtn.MouseLeave:Connect(function()
+        clearBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+        clearBtnStroke.Color = Color3.fromRGB(180, 40, 40)
+    end)
 
     clearBtn.MouseButton1Click:Connect(function()
         if DataManager and DataManager.clear then
@@ -2588,17 +2655,17 @@ function UIManager:createSettingsPanel()
 end
 
 function UIManager:createSidebar()
-    local sidebar = Instance.new("Frame")
-    sidebar.Name = "Sidebar"
-    sidebar.Size = UDim2.new(0, 320, 1, -110)
-    sidebar.Position = UDim2.new(0, 15, 0, 70)
-    sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    sidebar.BorderSizePixel = 0
-    sidebar.Parent = self.elements.mainFrame
+    local mainPanel = Instance.new("Frame")
+    mainPanel.Name = "MainPanel"
+    mainPanel.Size = UDim2.new(1, -390, 1, -110)
+    mainPanel.Position = UDim2.new(0, 370, 0, 70)
+    mainPanel.BackgroundColor3 = Color3.fromRGB(22, 22, 32)
+    mainPanel.BorderSizePixel = 0
+    mainPanel.Parent = self.elements.mainFrame
     
     local sidebarCorner = Instance.new("UICorner")
     sidebarCorner.CornerRadius = UDim.new(0, 12)
-    sidebarCorner.Parent = sidebar
+    sidebarCorner.Parent = mainPanel
     
     local sidebarStroke = Instance.new("UIStroke")
     sidebarStroke.Color = Color3.fromRGB(60, 60, 80)
@@ -3538,5 +3605,8 @@ function UIManager:updateCharacterList()
             mainUpdate(deltaTime)
         end)
 
+        print("[VolleyballVision] " .. SCRIPT_VERSION .. " fully loaded and operational!")
+        print("[VolleyballVision] Enhanced features: Auto-buy status tracking, improved webhooks, better UI")
+        
         task.wait(2)
         initialize()
