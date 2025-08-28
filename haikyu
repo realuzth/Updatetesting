@@ -2248,24 +2248,31 @@ function UIManager:create()
     corner.CornerRadius = UDim.new(0, 24)
     corner.Parent = mainFrame
 
-    -- Modern stroke border
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = self.theme.primary
-    stroke.Thickness = 3
-    stroke.Transparency = 0.2
-    stroke.Parent = mainFrame
+    -- Clean shadow effect instead of border
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 8, 1, 8)
+    shadow.Position = UDim2.new(0, -4, 0, -4)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.85
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = 0
+    shadow.Parent = mainFrame
+    
+    local shadowCorner = Instance.new("UICorner")
+    shadowCorner.CornerRadius = UDim.new(0, 28)
+    shadowCorner.Parent = shadow
 
     -- Store references
     self.elements.screenGui = screenGui
     self.elements.mainFrame = mainFrame
 
-    -- Create all modern UI components
+    -- Create UI components
     self:createModernHeader()
     self:createModernSidebar()
     self:createModernMainPanel()
     self:createModernFooter()
     self:createModernSettingsPanel()
-    self:createAnimatedBackground()
 
     -- Make the main frame draggable
     self:makeDraggable(mainFrame)
@@ -2328,29 +2335,23 @@ function UIManager:createModernSettingsPanel()
     panel.ZIndex = 50
     panel.Parent = self.elements.mainFrame
 
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = self.theme.primary
-    stroke.Thickness = 2
-    stroke.Transparency = 0.3
-    stroke.Parent = panel
+    -- Clean shadow instead of accent border
+    local panelShadow = Instance.new("Frame")
+    panelShadow.Size = UDim2.new(1, 4, 1, 4)
+    panelShadow.Position = UDim2.new(0, -2, 0, -2)
+    panelShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    panelShadow.BackgroundTransparency = 0.9
+    panelShadow.BorderSizePixel = 0
+    panelShadow.ZIndex = 49
+    panelShadow.Parent = panel
+    
+    local panelShadowCorner = Instance.new("UICorner")
+    panelShadowCorner.CornerRadius = UDim.new(0, 18)
+    panelShadowCorner.Parent = panelShadow
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 16)
     corner.Parent = panel
-
-    -- Add glow effect
-    local glow = Instance.new("Frame")
-    glow.Size = UDim2.new(1, 10, 1, 10)
-    glow.Position = UDim2.new(0, -5, 0, -5)
-    glow.BackgroundColor3 = self.theme.primary
-    glow.BackgroundTransparency = 0.9
-    glow.BorderSizePixel = 0
-    glow.ZIndex = 49
-    glow.Parent = panel
-
-    local glowCorner = Instance.new("UICorner")
-    glowCorner.CornerRadius = UDim.new(0, 20)
-    glowCorner.Parent = glow
 
     -- Panel header
     local panelHeader = Instance.new("Frame")
@@ -2391,6 +2392,12 @@ function UIManager:createModernSettingsPanel()
     self.elements.settingsPanel = panel
 end
 
+function UIManager:toggleSettingsPanel()
+    if not self.elements.settingsPanel then return end
+    local p = self.elements.settingsPanel
+    p.Visible = not p.Visible
+end
+
 -- Create modern sidebar
 function UIManager:createModernSidebar()
     local sidebar = Instance.new("Frame")
@@ -2406,11 +2413,19 @@ function UIManager:createModernSidebar()
     sidebarCorner.CornerRadius = UDim.new(0, 20)
     sidebarCorner.Parent = sidebar
     
-    local sidebarStroke = Instance.new("UIStroke")
-    sidebarStroke.Color = self.theme.primary
-    sidebarStroke.Thickness = 2
-    sidebarStroke.Transparency = 0.7
-    sidebarStroke.Parent = sidebar
+    -- Subtle shadow instead of accent border
+    local sidebarShadow = Instance.new("Frame")
+    sidebarShadow.Size = UDim2.new(1, 4, 1, 4)
+    sidebarShadow.Position = UDim2.new(0, -2, 0, -2)
+    sidebarShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    sidebarShadow.BackgroundTransparency = 0.9
+    sidebarShadow.BorderSizePixel = 0
+    sidebarShadow.ZIndex = 4
+    sidebarShadow.Parent = sidebar
+    
+    local sidebarShadowCorner = Instance.new("UICorner")
+    sidebarShadowCorner.CornerRadius = UDim.new(0, 22)
+    sidebarShadowCorner.Parent = sidebarShadow
     
     -- Sidebar header
     local sidebarHeader = Instance.new("Frame")
@@ -2454,11 +2469,19 @@ function UIManager:createModernMainPanel()
     mainPanelCorner.CornerRadius = UDim.new(0, 20)
     mainPanelCorner.Parent = mainPanel
     
-    local mainPanelStroke = Instance.new("UIStroke")
-    mainPanelStroke.Color = self.theme.primary
-    mainPanelStroke.Thickness = 2
-    mainPanelStroke.Transparency = 0.7
-    mainPanelStroke.Parent = mainPanel
+    -- Subtle shadow instead of accent border
+    local mainPanelShadow = Instance.new("Frame")
+    mainPanelShadow.Size = UDim2.new(1, 4, 1, 4)
+    mainPanelShadow.Position = UDim2.new(0, -2, 0, -2)
+    mainPanelShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    mainPanelShadow.BackgroundTransparency = 0.9
+    mainPanelShadow.BorderSizePixel = 0
+    mainPanelShadow.ZIndex = 4
+    mainPanelShadow.Parent = mainPanel
+    
+    local mainPanelShadowCorner = Instance.new("UICorner")
+    mainPanelShadowCorner.CornerRadius = UDim.new(0, 22)
+    mainPanelShadowCorner.Parent = mainPanelShadow
     
     -- Main panel header
     local mainPanelHeader = Instance.new("Frame")
@@ -2556,6 +2579,140 @@ function UIManager:createModernFooter()
     self.elements.fpsIndicator = fpsIndicator
     self.elements.statusIndicator = statusIndicator
     self.elements.timeIndicator = timeIndicator
+end
+
+function UIManager:createModernHeader()
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 80)
+    header.Position = UDim2.new(0, 0, 0, 0)
+    header.BackgroundColor3 = self.theme.primary
+    header.BorderSizePixel = 0
+    header.ZIndex = 5
+    header.Parent = self.elements.mainFrame
+
+    local headerCorner = Instance.new("UICorner")
+    headerCorner.CornerRadius = UDim.new(0, 24)
+    headerCorner.Parent = header
+
+    -- Volleyball logo
+    local logo = Instance.new("Frame")
+    logo.Size = UDim2.new(0, 50, 0, 50)
+    logo.Position = UDim2.new(0, 20, 0.5, -25)
+    logo.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+    logo.BorderSizePixel = 0
+    logo.ZIndex = 6
+    logo.Parent = header
+
+    local logoCorner = Instance.new("UICorner")
+    logoCorner.CornerRadius = UDim.new(0.5, 0)
+    logoCorner.Parent = logo
+
+    -- Volleyball lines
+    local line1 = Instance.new("Frame")
+    line1.Size = UDim2.new(0, 2, 1, 0)
+    line1.Position = UDim2.new(0.5, -1, 0, 0)
+    line1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    line1.BorderSizePixel = 0
+    line1.ZIndex = 7
+    line1.Parent = logo
+
+    local line2 = Instance.new("Frame")
+    line2.Size = UDim2.new(1, 0, 0, 2)
+    line2.Position = UDim2.new(0, 0, 0.5, -1)
+    line2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
+    line2.BorderSizePixel = 0
+    line2.ZIndex = 7
+    line2.Parent = logo
+
+    -- Title
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(0, 300, 1, 0)
+    title.Position = UDim2.new(0, 80, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "🏐 " .. SCRIPT_NAME
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 24
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.ZIndex = 6
+    title.Parent = header
+
+    -- Version
+    local version = Instance.new("TextLabel")
+    version.Size = UDim2.new(0, 200, 0, 20)
+    version.Position = UDim2.new(0, 80, 0, 45)
+    version.BackgroundTransparency = 1
+    version.Text = SCRIPT_VERSION
+    version.Font = Enum.Font.Gotham
+    version.TextSize = 12
+    version.TextColor3 = Color3.fromRGB(200, 200, 200)
+    version.TextXAlignment = Enum.TextXAlignment.Left
+    version.ZIndex = 6
+    version.Parent = header
+
+    -- Settings button
+    local settingsButton = Instance.new("TextButton")
+    settingsButton.Size = UDim2.new(0, 80, 0, 35)
+    settingsButton.Position = UDim2.new(1, -180, 0.5, -17.5)
+    settingsButton.BackgroundColor3 = self.theme.surface
+    settingsButton.BorderSizePixel = 0
+    settingsButton.Text = "⚙️ Settings"
+    settingsButton.TextColor3 = self.theme.text
+    settingsButton.Font = Enum.Font.GothamBold
+    settingsButton.TextSize = 12
+    settingsButton.AutoButtonColor = false
+    settingsButton.ZIndex = 6
+    settingsButton.Parent = header
+
+    local settingsCorner = Instance.new("UICorner")
+    settingsCorner.CornerRadius = UDim.new(0, 8)
+    settingsCorner.Parent = settingsButton
+
+    -- Minimize button
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Size = UDim2.new(0, 80, 0, 35)
+    minimizeButton.Position = UDim2.new(1, -90, 0.5, -17.5)
+    minimizeButton.BackgroundColor3 = self.theme.primary
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.Text = "🏐 Hide"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.TextSize = 12
+    minimizeButton.AutoButtonColor = false
+    minimizeButton.ZIndex = 6
+    minimizeButton.Parent = header
+
+    local minimizeCorner = Instance.new("UICorner")
+    minimizeCorner.CornerRadius = UDim.new(0, 8)
+    minimizeCorner.Parent = minimizeButton
+
+    -- Store references
+    self.elements.header = header
+    self.elements.settingsButton = settingsButton
+    self.elements.minimizeButton = minimizeButton
+
+    -- Connect buttons
+    minimizeButton.MouseButton1Click:Connect(function()
+        self:minimizeToSquare()
+    end)
+
+    settingsButton.MouseButton1Click:Connect(function()
+        self:toggleSettingsPanel()
+    end)
+
+    -- Hover effects
+    settingsButton.MouseEnter:Connect(function()
+        Services.TweenService:Create(settingsButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = Color3.fromRGB(55, 55, 65)
+        }):Play()
+    end)
+
+    settingsButton.MouseLeave:Connect(function()
+        Services.TweenService:Create(settingsButton, TweenInfo.new(0.2), {
+            BackgroundColor3 = self.theme.surface
+        }):Play()
+    end)
 end
 
     local function makeSwitch(labelText, settingKey, callback, order)
@@ -3640,4 +3797,3 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hello")
