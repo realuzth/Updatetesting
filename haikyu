@@ -1,7 +1,7 @@
 -- Volleyball Vision v1.0
 -- Enhanced character tracking system for Haikyuu-style games
 -- Created by uzth
-
+print("hello")
 local SCRIPT_NAME = "Volleyball Vision"
 local SCRIPT_VERSION = "made by uzth"
 
