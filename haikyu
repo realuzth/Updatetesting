@@ -1228,14 +1228,13 @@ function AutoBuySystem:mainLoop()
             
             if result == true then
                 print("✅ Successfully purchased: " .. target.Name)
-                local uid = target.Name .. "_" .. tostring(tick()) .. "_" .. tostring(math.random(1000, 9999))
-                self.purchasedCharacters[uid] = tick()
+                self.purchasedCharacters[getCharacterUID(target)] = tick()
             elseif result == "rebuy" then
                 print("🔄 INSTANT REBUY TRIGGERED - Someone else bought " .. target.Name .. "!")
                 print("🔍 DEBUG: Starting rebuy process...")
                 
                 -- Mark the current target as purchased so we don't target it again
-                local oldUID = target.Name .. "_" .. tostring(tick()) .. "_" .. tostring(math.random(1000, 9999))
+                local oldUID = getCharacterUID(target)
                 self.purchasedCharacters[oldUID] = tick()
                 
                 self.currentTarget = nil
@@ -1267,38 +1266,16 @@ function AutoBuySystem:mainLoop()
     print("🛑 Auto Buy main loop stopped")
 end
 
--- Check if door is already locked using game's actual lock mechanics
-local function isDoorLocked()
-    local player = Services.Players.LocalPlayer
-    if not player then return false end
-    
-    -- Get player's locker room number
-    local lockerRoomName = "LockerRoom" .. tostring(player.UserId % 8 + 1)
-    
-    -- Check if blockade exists (locked state)
-    local doorLockPath = workspace.Map and workspace.Map.Rooms and workspace.Map.Rooms[lockerRoomName] and workspace.Map.Rooms[lockerRoomName].DoorLock
-    if not doorLockPath then return false end
-    
-    local blockade = doorLockPath:FindFirstChild("Blockade")
-    if blockade and blockade.Parent then
-        -- Blockade exists and is parented = door is locked
-        return true
-    end
-    
-    -- No blockade or not parented = door is unlocked
-    return false
-end
-
 -- Lock door function
 local function lockDoor()
     local lockerRoom = getPlayerLockerRoom()
-    if not lockerRoom then return false end
+    if not lockerRoom then return end
 
     local buttons = lockerRoom:FindFirstChild("Buttons")
-    if not buttons then return false end
+    if not buttons then return end
 
     local lockButton = buttons:FindFirstChild("DoorLockButton")
-    if not lockButton then return false end
+    if not lockButton then return end
 
     local success = false
     
@@ -1437,15 +1414,39 @@ local function collectAllCash()
     end
 end
 
+-- Check if door is already locked using blockade detection
+local function isDoorLocked()
+    local player = Services.Players.LocalPlayer
+    if not player then return false end
+    
+    -- Get player's locker room number
+    local lockerRoomName = "LockerRoom" .. tostring(player.UserId % 8 + 1)
+    
+    -- Check if blockade exists (locked state)
+    local success, doorLockPath = pcall(function()
+        return workspace.Map.Rooms[lockerRoomName].DoorLock
+    end)
+    
+    if not success or not doorLockPath then return false end
+    
+    local blockade = doorLockPath:FindFirstChild("Blockade")
+    if blockade and blockade.Parent then
+        -- Blockade exists and is parented = door is locked
+        return true
+    end
+    
+    -- No blockade or not parented = door is unlocked
+    return false
+end
+
 -- Auto Lock System
 local AutoLock = {
     active = false,
     connection = nil,
-    checkInterval = 3, -- Check every 3 seconds
+    interval = 2,
     timer = 0,
     lastLogTime = 0,
-    successfulLocks = 0,
-    lastLockCheck = 0
+    successfulLocks = 0
 }
 
 function AutoLock:toggle()
@@ -1458,28 +1459,30 @@ function AutoLock:toggle()
     end
 
     if self.active then
-        print("Auto Lock system STARTED (Polling Mode)")
+        print("Auto Lock system STARTED (Smart Mode)")
         
-        -- Initial lock attempt only if needed
+        -- Initial check and lock if needed
         if not isDoorLocked() then
             lockDoor()
-            print("🔓 Initial lock attempt - door was unlocked")
+            print("🔓 Initial lock - door was unlocked")
         else
-            print("🔒 Door already locked - skipping initial attempt")
+            print("🔒 Door already locked")
         end
         
         self.timer = 0
         self.lastLogTime = 0
         self.successfulLocks = 0
         
-        -- Simple polling every 3 seconds
         self.connection = Services.RunService.Heartbeat:Connect(function(dt)
             self.timer = (self.timer or 0) + dt
-            if self.timer >= 3 then -- Check every 3 seconds
-                if self.active and not isDoorLocked() then
-                    lockDoor()
-                    self.successfulLocks = self.successfulLocks + 1
-                    print("🔓 Door was unlocked - locked it (#" .. self.successfulLocks .. ")")
+            if self.timer >= self.interval then
+                if self.active then
+                    -- Only lock if door is actually unlocked
+                    if not isDoorLocked() then
+                        lockDoor()
+                        self.successfulLocks = self.successfulLocks + 1
+                        print("🔓 Door unlocked - locked it (#" .. self.successfulLocks .. ")")
+                    end
                 end
                 self.timer = 0
             end
@@ -3539,4 +3542,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("heh")
+print("hello")
