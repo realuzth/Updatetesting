@@ -1,7 +1,7 @@
 -- Volleyball Vision v1.0
 -- Enhanced character tracking system for Haikyuu-style games
 -- Created by uzth
-print("hello")
+
 local SCRIPT_NAME = "Volleyball Vision"
 local SCRIPT_VERSION = "made by uzth"
 
@@ -26,7 +26,7 @@ local WEBHOOKS = {
     MYTHIC = "https://discord.com/api/webhooks/1410256210631983144/93LJrnzj-JPqcmFeeCX36bSk0b5mT6DSme1KP6AVEoAdrU9lxYPC1DojGXY1YZEGO02w",
     LEGENDARY = "https://discord.com/api/webhooks/1410282981041639465/oVnjhlYrDMWh0rkHDY47DiYAPYe3vUN7s97wJXkwMNM8N10eDn4yMYR1JaCuZ3R-XkbP"
 }
-
+print("hello")
 -- Enhanced SpawnLocation Detection System
 local SPAWN_LOCATIONS = {
     "SpawnLocation1", "SpawnLocation2", "SpawnLocation3", "SpawnLocation4",
@@ -342,38 +342,38 @@ local GameState = {
 }
 
 local CHARACTER_DATABASE = {
-    ["Timeskip Hinata"] = {rarity = "Secret", tier = 1, baseChar = "Hinata"},
-    ["Awakened Tobio Kageyama"] = {rarity = "Awakened", tier = 2, baseChar = "Kageyama"},
-    ["Awakened Kiyoomi Sakusa"] = {rarity = "Awakened", tier = 2, baseChar = "Sakusa"},
-    ["Awakened Korai Hoshiumi"] = {rarity = "Awakened", tier = 2, baseChar = "Hoshiumi"},
-    ["Awakened Wakatoshi Ushijima"] = {rarity = "Awakened", tier = 2, baseChar = "Ushijima"},
-    ["Shinsuke Kita"] = {rarity = "Mythic", tier = 3, baseChar = "Kita"},
-    ["Tobio Kageyama"] = {rarity = "Mythic", tier = 3, baseChar = "Kageyama"},
-    ["Korai Hoshiumi"] = {rarity = "Mythic", tier = 3, baseChar = "Hoshiumi"},
-    ["Wakatoshi Ushijima"] = {rarity = "Mythic", tier = 3, baseChar = "Ushijima"},
-    ["Kiyoomi Sakusa"] = {rarity = "Mythic", tier = 3, baseChar = "Sakusa"},
-    ["Keiji Akaashi"] = {rarity = "Legendary", tier = 4, baseChar = "Akaashi"},
-    ["Takanobu Aone"] = {rarity = "Legendary", tier = 4, baseChar = "Aone"},
-    ["Tetsuro Kuroo"] = {rarity = "Legendary", tier = 4, baseChar = "Kuroo"},
-    ["Alt Art MSBY Atsumu"] = {rarity = "Legendary", tier = 4, baseChar = "Atsumu"},
-    ["Kotaro Bokuto"] = {rarity = "Legendary", tier = 4, baseChar = "Bokuto"},
-    ["Oikawa"] = {rarity = "Legendary", tier = 4, baseChar = "Oikawa"},
-    ["Koshi Sugawara"] = {rarity = "Rare", tier = 5, baseChar = "Sugawara"},
-    ["Kenma Kozume"] = {rarity = "Rare", tier = 5, baseChar = "Kenma"},
-    ["Yaku Morisuke"] = {rarity = "Rare", tier = 5, baseChar = "Yaku"},
-    ["Yamaguchi"] = {rarity = "Rare", tier = 5, baseChar = "Yamaguchi"},
-    ["Satori Tendo"] = {rarity = "Rare", tier = 5, baseChar = "Tendo"},
-    ["Daichi Sawamura"] = {rarity = "Rare", tier = 5, baseChar = "Daichi"},
-    ["Rintaro Suna"] = {rarity = "Uncommon", tier = 6, baseChar = "Suna"},
-    ["Atsumu Miya"] = {rarity = "Uncommon", tier = 6, baseChar = "Atsumu"},
-    ["Kei Tsukishima"] = {rarity = "Uncommon", tier = 6, baseChar = "Tsukishima"},
-    ["Shoyo Hinata"] = {rarity = "Uncommon", tier = 6, baseChar = "Hinata"},
-    ["Hajime Iwaizumi"] = {rarity = "Uncommon", tier = 6, baseChar = "Iwaizumi"},
-    ["Kentaro Kyotani"] = {rarity = "Uncommon", tier = 6, baseChar = "Kyotani"},
-    ["Yuu Nishinoya"] = {rarity = "Common", tier = 7, baseChar = "Nishinoya"},
-    ["Taketora Yamamoto"] = {rarity = "Common", tier = 7, baseChar = "Yamamoto"},
-    ["Lev Haiba"] = {rarity = "Common", tier = 7, baseChar = "Lev"},
-    ["Komori Motoya"] = {rarity = "Common", tier = 7, baseChar = "Komori"}
+    ["Timeskip Hinata"] = {rarity = "Secret", tier = 1, baseChar = "Hinata", income = 40000},
+    ["Awakened Tobio Kageyama"] = {rarity = "Awakened", tier = 2, baseChar = "Kageyama", income = 34200},
+    ["Awakened Kiyoomi Sakusa"] = {rarity = "Awakened", tier = 2, baseChar = "Sakusa", income = 25000},
+    ["Awakened Korai Hoshiumi"] = {rarity = "Awakened", tier = 2, baseChar = "Hoshiumi", income = 32000},
+    ["Awakened Wakatoshi Ushijima"] = {rarity = "Awakened", tier = 2, baseChar = "Ushijima", income = 28000},
+    ["Shinsuke Kita"] = {rarity = "Mythic", tier = 3, baseChar = "Kita", income = 17300},
+    ["Tobio Kageyama"] = {rarity = "Mythic", tier = 3, baseChar = "Kageyama", income = 10000},
+    ["Korai Hoshiumi"] = {rarity = "Mythic", tier = 3, baseChar = "Hoshiumi", income = 5000},
+    ["Wakatoshi Ushijima"] = {rarity = "Mythic", tier = 3, baseChar = "Ushijima", income = 4500},
+    ["Kiyoomi Sakusa"] = {rarity = "Mythic", tier = 3, baseChar = "Sakusa", income = 2250},
+    ["Keiji Akaashi"] = {rarity = "Legendary", tier = 4, baseChar = "Akaashi", income = 1295},
+    ["Takanobu Aone"] = {rarity = "Legendary", tier = 4, baseChar = "Aone", income = 1200},
+    ["Tetsuro Kuroo"] = {rarity = "Legendary", tier = 4, baseChar = "Kuroo", income = 1100},
+    ["Alt Art MSBY Atsumu"] = {rarity = "Legendary", tier = 4, baseChar = "Atsumu", income = 810},
+    ["Kotaro Bokuto"] = {rarity = "Legendary", tier = 4, baseChar = "Bokuto", income = 785},
+    ["Oikawa"] = {rarity = "Legendary", tier = 4, baseChar = "Oikawa", income = 460},
+    ["Koshi Sugawara"] = {rarity = "Rare", tier = 5, baseChar = "Sugawara", income = 210},
+    ["Kenma Kozume"] = {rarity = "Rare", tier = 5, baseChar = "Kenma", income = 160},
+    ["Yaku Morisuke"] = {rarity = "Rare", tier = 5, baseChar = "Yaku", income = 130},
+    ["Yamaguchi"] = {rarity = "Rare", tier = 5, baseChar = "Yamaguchi", income = 90},
+    ["Satori Tendo"] = {rarity = "Rare", tier = 5, baseChar = "Tendo", income = 62},
+    ["Daichi Sawamura"] = {rarity = "Rare", tier = 5, baseChar = "Daichi", income = 50},
+    ["Rintaro Suna"] = {rarity = "Uncommon", tier = 6, baseChar = "Suna", income = 28},
+    ["Atsumu Miya"] = {rarity = "Uncommon", tier = 6, baseChar = "Atsumu", income = 25},
+    ["Kei Tsukishima"] = {rarity = "Uncommon", tier = 6, baseChar = "Tsukishima", income = 22},
+    ["Shoyo Hinata"] = {rarity = "Uncommon", tier = 6, baseChar = "Hinata", income = 15},
+    ["Hajime Iwaizumi"] = {rarity = "Uncommon", tier = 6, baseChar = "Iwaizumi", income = 12},
+    ["Kentaro Kyotani"] = {rarity = "Uncommon", tier = 6, baseChar = "Kyotani", income = 10},
+    ["Yuu Nishinoya"] = {rarity = "Common", tier = 7, baseChar = "Nishinoya", income = 5},
+    ["Taketora Yamamoto"] = {rarity = "Common", tier = 7, baseChar = "Yamamoto", income = 3},
+    ["Lev Haiba"] = {rarity = "Common", tier = 7, baseChar = "Lev", income = 2},
+    ["Komori Motoya"] = {rarity = "Common", tier = 7, baseChar = "Komori", income = 1}
 }
 
 local DEFAULT_ENABLED_CHARACTERS = {
@@ -386,17 +386,50 @@ local DEFAULT_ENABLED_CHARACTERS = {
 
 local function generateMutationVariants()
     local variants = {}
+    
+    -- Base characters
     for name, data in pairs(CHARACTER_DATABASE) do
-        variants[name] = {rarity = data.rarity, tier = data.tier, baseChar = data.baseChar, mutation = nil, multiplier = 1.0, fullName = name}
+        variants[name] = {
+            rarity = data.rarity, 
+            tier = data.tier, 
+            baseChar = data.baseChar, 
+            mutation = nil, 
+            income = data.income,
+            multiplier = 1.0, 
+            fullName = name
+        }
     end
+    
+    -- Golden variants (1.2x multiplier)
     for name, data in pairs(CHARACTER_DATABASE) do
         local goldenName = "Golden " .. name
-        variants[goldenName] = {rarity = data.rarity, tier = data.tier, baseChar = data.baseChar, mutation = "Golden", multiplier = 2.0, fullName = goldenName}
+        local goldenIncome = math.floor(data.income * 1.2)
+        variants[goldenName] = {
+            rarity = data.rarity, 
+            tier = data.tier, 
+            baseChar = data.baseChar, 
+            mutation = "Golden", 
+            income = goldenIncome,
+            multiplier = 1.2, 
+            fullName = goldenName
+        }
     end
+    
+    -- Diamond variants (1.7x multiplier)
     for name, data in pairs(CHARACTER_DATABASE) do
         local diamondName = "Diamond " .. name
-        variants[diamondName] = {rarity = data.rarity, tier = data.tier, baseChar = data.baseChar, mutation = "Diamond", multiplier = 5.0, fullName = diamondName}
+        local diamondIncome = math.floor(data.income * 1.7)
+        variants[diamondName] = {
+            rarity = data.rarity, 
+            tier = data.tier, 
+            baseChar = data.baseChar, 
+            mutation = "Diamond", 
+            income = diamondIncome,
+            multiplier = 1.7, 
+            fullName = diamondName
+        }
     end
+    
     return variants
 end
 
@@ -604,59 +637,50 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Real-time purchase detection by monitoring proximity prompt interactions
-local function isCharacterPurchasedByOther()
-    if not AutoBuySystem.currentTarget then 
-        return false 
-    end
-    if not AutoBuySystem.currentTarget.Parent then 
-        return false 
-    end
+-- Enhanced purchase detection based on character movement direction
+function AutoBuySystem:isCharacterPurchasedByOther(character)
+    if not character or not character.Parent then return false end
+    if not character:FindFirstChild("HumanoidRootPart") then return false end
     
-    local character = AutoBuySystem.currentTarget
-    if not character.Name then return false end
+    local humanoidRootPart = character.HumanoidRootPart
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then return false end
     
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
-    if not torso then return false end
+    -- Get player's spawn location
+    local playerSpawn = getPlayerSpawnLocation()
+    if not playerSpawn then return false end
     
-    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
+    -- Get all other spawn locations
+    local otherSpawns = getOtherSpawnLocations()
+    if #otherSpawns == 0 then return false end
     
-    -- Check if prompt is disabled (someone purchased it)
-    if not prompt.Enabled then
-        print("⚡ PURCHASE DETECTED: " .. character.Name .. " prompt is disabled - someone else bought it!")
-        return true
-    end
+    -- Check if character is moving
+    local moveVector = humanoid.MoveDirection
+    if moveVector.Magnitude < 0.1 then return false end -- Not moving
     
-    -- Use simple character name + instance as UID to avoid getCharacterUID errors
-    local uid = character.Name .. "_" .. tostring(character)
+    local charPosition = humanoidRootPart.Position
+    local playerSpawnPos = playerSpawn.Position
     
-    if not AutoBuySystem.promptStates then
-        AutoBuySystem.promptStates = {}
-    end
+    -- Calculate direction to player spawn
+    local dirToPlayerSpawn = (playerSpawnPos - charPosition).Unit
+    local dotToPlayer = moveVector:Dot(dirToPlayerSpawn)
     
-    local currentTime = tick()
-    local promptState = {
-        enabled = prompt.Enabled,
-        time = currentTime
-    }
-    
-    if not AutoBuySystem.promptStates[uid] then
-        AutoBuySystem.promptStates[uid] = promptState
-        return false
-    end
-    
-    local lastState = AutoBuySystem.promptStates[uid]
-    
-    -- If prompt was enabled but now disabled (someone just bought it)
-    if lastState and lastState.enabled and not prompt.Enabled then
-        print("⚡ INSTANT PURCHASE DETECTED: " .. character.Name .. " was just bought by someone else!")
-        AutoBuySystem.promptStates[uid] = promptState
-        return true
+    -- Check if heading towards any other spawn location
+    for _, otherSpawn in ipairs(otherSpawns) do
+        local otherSpawnPos = otherSpawn.Position
+        local dirToOtherSpawn = (otherSpawnPos - charPosition).Unit
+        local dotToOther = moveVector:Dot(dirToOtherSpawn)
+        
+        -- If character is moving towards another spawn (dot > 0.7) and not towards player spawn
+        if dotToOther > 0.7 and dotToPlayer < 0.5 then
+            local distanceToOther = (otherSpawnPos - charPosition).Magnitude
+            if distanceToOther < CONFIG.SPAWN_CHECK_DISTANCE then
+                print("🔍 PURCHASE DETECTED: " .. character.Name .. " heading to another player's spawn")
+                return true
+            end
+        end
     end
     
-    -- Update state
-    AutoBuySystem.promptStates[uid] = promptState
     return false
 end
 
@@ -864,13 +888,19 @@ local function markCharacterInProgress(character)
     return true
 end
 
--- Attempt to purchase a character using proximity prompts (unchanged)
+-- Enhanced purchase function with duplicate prevention
 local function attemptPurchase(localPlayer, targetCharacter)
     if not targetCharacter or not targetCharacter.Parent then
         return false
     end
     
     if isCharacterPurchased(targetCharacter) then
+        return false
+    end
+    
+    -- Double-check if character is heading to another spawn before purchase
+    if AutoBuySystem:isCharacterPurchasedByOther(targetCharacter) then
+        print("🚫 Aborting purchase - character heading to another spawn: " .. targetCharacter.Name)
         return false
     end
     
@@ -894,6 +924,13 @@ local function attemptPurchase(localPlayer, targetCharacter)
         return false
     end
     
+    -- Check if prompt is still enabled (not purchased by someone else)
+    if not prompt.Enabled then
+        print("⚠️ Purchase prompt disabled - someone else bought: " .. targetCharacter.Name)
+        markCharacterPurchased(targetCharacter, false)
+        return false
+    end
+    
     if humanoidRootPart and torso then
         local distance = (humanoidRootPart.Position - torso.Position).Magnitude
         if distance > CONFIG.AUTO_BUY_DISTANCE * 1.5 then
@@ -903,33 +940,19 @@ local function attemptPurchase(localPlayer, targetCharacter)
         end
     end
     
+    -- Single attempt to prevent money drain
     local purchaseSuccess = false
-    local attempts = 0
-    local maxAttempts = 3
+    local success = pcall(function()
+        fireproximityprompt(prompt)
+        purchaseSuccess = true
+    end)
     
-    while attempts < maxAttempts and not purchaseSuccess do
-        attempts = attempts + 1
-        
-        local success = pcall(function()
-            fireproximityprompt(prompt)
-            purchaseSuccess = true
-        end)
-        
-        if success then
-            print("🎯 Purchase prompt fired for: " .. targetCharacter.Name .. " (attempt " .. attempts .. ")")
-            break
-        else
-            warn("[AutoBuy] Failed to fire proximity prompt for: " .. targetCharacter.Name .. " (attempt " .. attempts .. ")")
-            if attempts < maxAttempts then
-                task.wait(0.5)
-            end
-        end
-    end
-    
-    if purchaseSuccess then
+    if success and purchaseSuccess then
+        print("🎯 Purchase successful: " .. targetCharacter.Name)
         markCharacterPurchased(targetCharacter, true)
         return true
     else
+        warn("[AutoBuy] Failed to purchase: " .. targetCharacter.Name)
         markCharacterPurchased(targetCharacter, false)
         return false
     end
@@ -994,6 +1017,9 @@ function AutoBuySystem:findBestTarget()
         if target and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
             if isCharacterPurchased(target) then continue end
             
+            -- Check if character is heading to another player's spawn (purchased by someone else)
+            if self:isCharacterPurchasedByOther(target) then continue end
+            
             local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
             if not torso then continue end
             
@@ -1002,13 +1028,12 @@ function AutoBuySystem:findBestTarget()
             
             local distance = (humanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
             
-            local rarityScore = (10 - charData.tier) * 100
-            local mutationBonus = charData.mutation == "Diamond" and 500 or charData.mutation == "Golden" and 250 or 0
-            local distancePenalty = distance * 3
+            -- Priority based on income per second
+            local incomeScore = charData.income or 0
+            local distancePenalty = distance * 10
+            local proximityBonus = math.max(0, (50 - distance) * 5)
             
-            local proximityBonus = math.max(0, (50 - distance) * 2)
-            
-            local score = rarityScore + mutationBonus + proximityBonus - distancePenalty
+            local score = incomeScore + proximityBonus - distancePenalty
             
             if score > bestScore then
                 bestScore = score
@@ -1051,7 +1076,7 @@ function AutoBuySystem:followTarget(target)
         end
 
         -- INSTANT REBUY CHECK - Check if someone else bought it
-        if isCharacterPurchasedByOther() then
+        if self:isCharacterPurchasedByOther(target) then
             print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
             print("🔄 " .. targetName .. " was bought by someone else - clearing purchase record")
             
@@ -1864,95 +1889,14 @@ function PerformanceMonitor:update(deltaTime)
     end
 end
 
--- Enhanced UIManager with Modern Design and Volleyball Theme
+-- UIManager with Minimize Feature
 local UIManager = {
     elements = {},
     animations = {},
-    searchFilters = nil,
-    theme = {
-        primary = Color3.fromRGB(255, 87, 51),     -- Volleyball orange
-        secondary = Color3.fromRGB(45, 45, 55),    -- Dark background
-        accent = Color3.fromRGB(255, 215, 0),      -- Gold accent
-        surface = Color3.fromRGB(35, 35, 45),      -- Card background
-        text = Color3.fromRGB(255, 255, 255),      -- White text
-        textSecondary = Color3.fromRGB(200, 200, 210), -- Light gray text
-        success = Color3.fromRGB(76, 175, 80),     -- Green
-        warning = Color3.fromRGB(255, 193, 7),     -- Yellow
-        error = Color3.fromRGB(244, 67, 54)        -- Red
-    }
+    searchFilters = nil
 }
 
--- Create volleyball icon for minimized state
-function UIManager:createVolleyballIcon()
-    local volleyball = Instance.new("Frame")
-    volleyball.Name = "VolleyballIcon"
-    volleyball.Size = UDim2.new(0, 80, 0, 80)
-    volleyball.Position = UDim2.new(0, 100, 0, 100)
-    volleyball.BackgroundColor3 = self.theme.primary
-    volleyball.BorderSizePixel = 0
-    volleyball.ZIndex = 1000
-    volleyball.Active = true
-    
-    -- Make it circular
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.5, 0)
-    corner.Parent = volleyball
-    
-    -- Add volleyball pattern
-    local pattern1 = Instance.new("Frame")
-    pattern1.Size = UDim2.new(0, 2, 1, 0)
-    pattern1.Position = UDim2.new(0.5, -1, 0, 0)
-    pattern1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    pattern1.BorderSizePixel = 0
-    pattern1.ZIndex = 1001
-    pattern1.Parent = volleyball
-    
-    local pattern2 = Instance.new("Frame")
-    pattern2.Size = UDim2.new(1, 0, 0, 2)
-    pattern2.Position = UDim2.new(0, 0, 0.5, -1)
-    pattern2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    pattern2.BorderSizePixel = 0
-    pattern2.ZIndex = 1001
-    pattern2.Parent = volleyball
-    
-    -- Add curved lines
-    local curve1 = Instance.new("Frame")
-    curve1.Size = UDim2.new(0.7, 0, 0, 2)
-    curve1.Position = UDim2.new(0.15, 0, 0.25, 0)
-    curve1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    curve1.BorderSizePixel = 0
-    curve1.ZIndex = 1001
-    curve1.Rotation = 45
-    curve1.Parent = volleyball
-    
-    local curve2 = Instance.new("Frame")
-    curve2.Size = UDim2.new(0.7, 0, 0, 2)
-    curve2.Position = UDim2.new(0.15, 0, 0.75, 0)
-    curve2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    curve2.BorderSizePixel = 0
-    curve2.ZIndex = 1001
-    curve2.Rotation = -45
-    curve2.Parent = volleyball
-    
-    -- Add glow effect
-    local glow = Instance.new("Frame")
-    glow.Name = "Glow"
-    glow.Size = UDim2.new(1, 20, 1, 20)
-    glow.Position = UDim2.new(0, -10, 0, -10)
-    glow.BackgroundColor3 = self.theme.primary
-    glow.BackgroundTransparency = 0.8
-    glow.BorderSizePixel = 0
-    glow.ZIndex = 999
-    glow.Parent = volleyball
-    
-    local glowCorner = Instance.new("UICorner")
-    glowCorner.CornerRadius = UDim.new(0.5, 0)
-    glowCorner.Parent = glow
-    
-    return volleyball
-end
-
--- Enhanced minimize function with volleyball icon
+-- Fixed minimizeToSquare function with proper text timing and working drag
 function UIManager:minimizeToSquare()
     if GameState.isMinimized then return end
     GameState.isMinimized = true
@@ -1967,21 +1911,52 @@ function UIManager:minimizeToSquare()
         end
     end
     
-    -- Create volleyball icon instead of square
-    local volleyball = self:createVolleyballIcon()
-    volleyball.Size = UDim2.new(0, 0, 0, 0)
-    volleyball.BackgroundTransparency = 1
-    volleyball.Parent = mainFrame
+    -- Create the target square (invisible initially)
+    local square = Instance.new("Frame")
+    square.Name = "MinimizedSquare"
+    square.Size = UDim2.new(0, 0, 0, 0)
+    square.Position = UDim2.new(0.5, 0, 0.5, 0)
+    square.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
+    square.BorderSizePixel = 0
+    square.ZIndex = 1000
+    square.BackgroundTransparency = 1
+    square.Parent = mainFrame
     
-    -- Hide all volleyball patterns initially
-    for _, child in pairs(volleyball:GetChildren()) do
-        if child:IsA("Frame") then
-            child.BackgroundTransparency = 1
-        end
-    end
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 16)
+    corner.Parent = square
     
-    -- Smooth shrinking effect for main frame
-    local shrinkTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 80)
+    stroke.Thickness = 2
+    stroke.Transparency = 1
+    stroke.Parent = square
+    
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 18))
+    })
+    gradient.Rotation = 135
+    gradient.Parent = square
+    
+    -- Text that starts completely hidden
+    local restoreText = Instance.new("TextLabel")
+    restoreText.Size = UDim2.new(1, -10, 1, -10)
+    restoreText.Position = UDim2.new(0, 5, 0, 5)
+    restoreText.BackgroundTransparency = 1
+    restoreText.Text = "Show\nUI"
+    restoreText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    restoreText.Font = Enum.Font.GothamBold
+    restoreText.TextSize = 14
+    restoreText.TextWrapped = true
+    restoreText.ZIndex = 1001
+    restoreText.TextTransparency = 1
+    restoreText.Visible = false -- Start with text completely hidden
+    restoreText.Parent = square
+    
+    -- Black hole shrinking effect for main frame
+    local shrinkTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1
@@ -1989,68 +1964,52 @@ function UIManager:minimizeToSquare()
     
     shrinkTween:Play()
     
-    -- After shrink completes, expand volleyball with bounce
+    -- After shrink completes, expand square
     shrinkTween.Completed:Connect(function()
-        local expandTween = Services.TweenService:Create(volleyball, TweenInfo.new(0.8, Enum.EasingStyle.Elastic, Enum.EasingDirection.Out), {
+        local expandTween = Services.TweenService:Create(square, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 80, 0, 80),
             Position = UDim2.new(0.5, -40, 0.5, -40),
             BackgroundTransparency = 0
         })
         
-        expandTween:Play()
-        
-        -- Animate volleyball patterns appearing
-        task.wait(0.3)
-        for _, child in pairs(volleyball:GetChildren()) do
-            if child:IsA("Frame") and child.Name ~= "Glow" then
-                Services.TweenService:Create(child, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    BackgroundTransparency = 0
-                }):Play()
-            end
-        end
-        
-        -- Add floating animation
-        local floatTween = Services.TweenService:Create(volleyball, TweenInfo.new(2, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
-            Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset - 5)
+        local strokeTween = Services.TweenService:Create(stroke, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Transparency = 0.3
         })
-        floatTween:Play()
+        
+        expandTween:Play()
+        strokeTween:Play()
+        
+        -- Only show and fade in text after square is completely expanded
+        expandTween.Completed:Connect(function()
+            restoreText.Visible = true
+            local textTween = Services.TweenService:Create(restoreText, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TextTransparency = 0
+            })
+            textTween:Play()
+        end)
     end)
     
-    self.elements.minimizedVolleyball = volleyball
+    self.elements.minimizedSquare = square
     
     -- Setup drag and click functionality
-    self:makeVolleyballDraggable(volleyball)
+    self:makeSquareDraggable(square)
     
-    -- Enhanced hover effects with glow
-    volleyball.MouseEnter:Connect(function()
-        if not GameState.volleyballDragging then
-            Services.TweenService:Create(volleyball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 90, 0, 90),
-                Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset - 5, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset - 5)
+    -- Hover effects
+    square.MouseEnter:Connect(function()
+        if not GameState.squareDragging then
+            Services.TweenService:Create(square, TweenInfo.new(0.2), {
+                Size = UDim2.new(0, 85, 0, 85),
+                Position = UDim2.new(square.Position.X.Scale, square.Position.X.Offset - 2.5, square.Position.Y.Scale, square.Position.Y.Offset - 2.5)
             }):Play()
-            
-            local glow = volleyball:FindFirstChild("Glow")
-            if glow then
-                Services.TweenService:Create(glow, TweenInfo.new(0.3), {
-                    BackgroundTransparency = 0.5
-                }):Play()
-            end
         end
     end)
     
-    volleyball.MouseLeave:Connect(function()
-        if not GameState.volleyballDragging then
-            Services.TweenService:Create(volleyball, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    square.MouseLeave:Connect(function()
+        if not GameState.squareDragging then
+            Services.TweenService:Create(square, TweenInfo.new(0.2), {
                 Size = UDim2.new(0, 80, 0, 80),
-                Position = UDim2.new(volleyball.Position.X.Scale, volleyball.Position.X.Offset + 5, volleyball.Position.Y.Scale, volleyball.Position.Y.Offset + 5)
+                Position = UDim2.new(square.Position.X.Scale, square.Position.X.Offset + 2.5, square.Position.Y.Scale, square.Position.Y.Offset + 2.5)
             }):Play()
-            
-            local glow = volleyball:FindFirstChild("Glow")
-            if glow then
-                Services.TweenService:Create(glow, TweenInfo.new(0.3), {
-                    BackgroundTransparency = 0.8
-                }):Play()
-            end
         end
     end)
 end
@@ -2060,102 +2019,85 @@ function UIManager:unminimizeFromSquare()
     GameState.isMinimized = false
     
     local mainFrame = self.elements.mainFrame
-    local volleyball = self.elements.minimizedVolleyball
-    if not mainFrame or not volleyball then return end
+    local square = self.elements.minimizedSquare
+    if not mainFrame or not square then return end
     
-    -- Stop floating animation
-    Services.TweenService:Create(volleyball, TweenInfo.new(0.1), {}):Play()
-    
-    -- Hide volleyball patterns with bounce effect
-    for _, child in pairs(volleyball:GetChildren()) do
-        if child:IsA("Frame") and child.Name ~= "Glow" then
-            Services.TweenService:Create(child, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-                BackgroundTransparency = 1
-            }):Play()
-        end
+    -- Hide text immediately and make square completely invisible
+    local restoreText = square:FindFirstChild("TextLabel")
+    if restoreText then
+        restoreText.Visible = false
     end
     
-    -- Animate the volleyball shrinking with spin effect
-    local shrinkTween = Services.TweenService:Create(volleyball, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    -- Hide square's stroke during animation
+    local stroke = square:FindFirstChildOfClass("UIStroke")
+    if stroke then
+        stroke.Transparency = 1
+    end
+    
+    -- Animate the square shrinking with complete transparency
+    local shrinkTween = Services.TweenService:Create(square, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundTransparency = 1,
-        Rotation = 360
+        BackgroundTransparency = 1
     })
     shrinkTween:Play()
     
-    -- Wait for volleyball to shrink, then restore main frame
+    -- Wait for square to shrink, then restore main frame
     shrinkTween.Completed:Connect(function()
         -- Reset main frame to ensure clean state
         mainFrame.BackgroundTransparency = 0
         local mainStroke = mainFrame:FindFirstChildOfClass("UIStroke")
         if mainStroke then
-            mainStroke.Transparency = 0.2
+            mainStroke.Transparency = 0.3
         end
         
-        local restoreTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 1000, 0, 700),
-            Position = UDim2.new(0.5, -500, 0.5, -350)
+        local restoreTween = Services.TweenService:Create(mainFrame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 900, 0, 600),
+            Position = UDim2.new(0.5, -450, 0.5, -300)
         })
         restoreTween:Play()
         
         -- Show UI elements after restore completes
         restoreTween.Completed:Connect(function()
             for _, child in pairs(mainFrame:GetChildren()) do
-                if child.Name ~= "VolleyballIcon" and child:IsA("GuiObject") and child.Name ~= "SettingsPanel" then
+                if child.Name ~= "MinimizedSquare" and child:IsA("GuiObject") and child.Name ~= "SettingsPanel" then
                     child.Visible = true
                 end
             end
             
-            volleyball:Destroy()
-            self.elements.minimizedVolleyball = nil
-            GameState.volleyballDragging = false
+            square:Destroy()
+            self.elements.minimizedSquare = nil
+            GameState.squareDragging = false
         end)
     end)
     
     print("UI restored from minimized state")
 end
 
-function UIManager:makeVolleyballDraggable(volleyball)
+function UIManager:makeSquareDraggable(square)
     local dragging = false
     local dragStart = nil
     local startPos = nil
     local hasMoved = false
     
-    GameState.volleyballDragging = false
+    GameState.squareDragging = false
     
-    -- Global input detection for volleyball
-    local inputConnection = Services.UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        
+    square.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            local mousePos = Services.UserInputService:GetMouseLocation()
-            local volleyballPos = volleyball.AbsolutePosition
-            local volleyballSize = volleyball.AbsoluteSize
+            dragging = true
+            hasMoved = false
+            GameState.squareDragging = false
             
-            -- Check if mouse is over the volleyball (circular hit detection)
-            local centerX = volleyballPos.X + volleyballSize.X / 2
-            local centerY = volleyballPos.Y + volleyballSize.Y / 2
-            local radius = volleyballSize.X / 2
-            local distance = math.sqrt((mousePos.X - centerX)^2 + (mousePos.Y - centerY)^2)
-            
-            if distance <= radius then
-                dragging = true
-                hasMoved = false
-                GameState.volleyballDragging = false
-                
-                -- Store the mouse position and current volleyball position
-                dragStart = mousePos
-                startPos = volleyball.Position
-            end
+            -- Store the input position and current square position
+            dragStart = input.Position
+            startPos = square.Position
         end
     end)
     
-    -- Global mouse movement tracking - works anywhere on screen
+    -- Global mouse movement tracking
     local dragConnection = Services.UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local currentMouse = Services.UserInputService:GetMouseLocation()
-            local delta = currentMouse - dragStart
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
             
             -- If moved more than 3 pixels, it's a drag
             if not hasMoved and (math.abs(delta.X) > 3 or math.abs(delta.Y) > 3) then
@@ -2171,20 +2113,21 @@ function UIManager:makeVolleyballDraggable(volleyball)
                 local newX = startPos.X.Offset + delta.X
                 local newY = startPos.Y.Offset + delta.Y
                 
-                -- Keep within screen bounds with proper margins (accounting for volleyball size)
-                local volleyballSize = 80 -- The volleyball is 80x80 pixels
+                -- Keep within screen bounds with proper margins (accounting for square size)
+                local squareSize = 80 -- The square is 80x80 pixels
                 local margin = 10 -- Small margin from screen edges
                 
-                newX = math.max(margin, math.min(screenSize.X - volleyballSize - margin, newX))
-                newY = math.max(margin, math.min(screenSize.Y - volleyballSize - margin, newY))
+                -- Allow full screen movement
+                newX = math.max(margin, math.min(screenSize.X - squareSize - margin, newX))
+                newY = math.max(margin, math.min(screenSize.Y - squareSize - margin, newY))
                 
                 -- Update position using offset coordinates
-                volleyball.Position = UDim2.new(0, newX, 0, newY)
+                square.Position = UDim2.new(0, newX, 0, newY)
             end
         end
     end)
     
-    -- Global mouse release tracking - works anywhere on screen
+    -- Global mouse release tracking
     local releaseConnection = Services.UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             if dragging then
@@ -2192,23 +2135,22 @@ function UIManager:makeVolleyballDraggable(volleyball)
                 
                 -- Only trigger unminimize if it wasn't a drag
                 if not hasMoved then
-                    GameState.volleyballDragging = false
+                    GameState.squareDragging = false
                     self:unminimizeFromSquare()
                 else
                     -- Small delay before allowing hover effects again
                     spawn(function()
                         task.wait(0.1)
-                        GameState.volleyballDragging = false
+                        GameState.squareDragging = false
                     end)
                 end
             end
         end
     end)
     
-    -- Clean up connections when volleyball is destroyed
-    volleyball.AncestryChanged:Connect(function()
-        if not volleyball.Parent then
-            if inputConnection then inputConnection:Disconnect() end
+    -- Clean up connections when square is destroyed
+    square.AncestryChanged:Connect(function()
+        if not square.Parent then
             if dragConnection then dragConnection:Disconnect() end
             if releaseConnection then releaseConnection:Disconnect() end
         end
@@ -2221,9 +2163,8 @@ function UIManager:create()
 
     self.elements = self.elements or {}
 
-    -- Create modern ScreenGui
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "VolleyballVisionPro"
+    screenGui.Name = "VolleyballVision"
     screenGui.Parent = playerGui
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
@@ -2231,165 +2172,141 @@ function UIManager:create()
     screenGui.Enabled = true
     screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
-    -- Create modern main frame with volleyball theme
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainContainer"
-    mainFrame.Size = UDim2.new(0, 1000, 0, 700)
-    mainFrame.Position = UDim2.new(0.5, -500, 0.5, -350)
-    mainFrame.BackgroundColor3 = self.theme.secondary
+    mainFrame.Size = UDim2.new(0, 900, 0, 600)
+    mainFrame.Position = UDim2.new(0.5, -450, 0.5, -300)
+    mainFrame.BackgroundTransparency = 0
+    mainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
     mainFrame.BorderSizePixel = 0
     mainFrame.ClipsDescendants = false
     mainFrame.ZIndex = 1
-    mainFrame.Active = true
     mainFrame.Parent = screenGui
-
-    -- Modern rounded corners
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 24)
-    corner.Parent = mainFrame
-
-    -- Clean shadow effect instead of border
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, 8, 1, 8)
-    shadow.Position = UDim2.new(0, -4, 0, -4)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.85
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
-    
-    local shadowCorner = Instance.new("UICorner")
-    shadowCorner.CornerRadius = UDim.new(0, 28)
-    shadowCorner.Parent = shadow
-
-    -- Store references
-    self.elements.screenGui = screenGui
-    self.elements.mainFrame = mainFrame
-
-    -- Create UI components
-    self:createModernHeader()
-    self:createModernSidebar()
-    self:createModernMainPanel()
-    self:createModernFooter()
-    self:createModernSettingsPanel()
-
-    -- Make the main frame draggable
-    self:makeDraggable(mainFrame)
-
-    print("🏐 Modern Volleyball Vision UI created successfully!")
-    return screenGui
-end
-
--- Update footer with real-time information
-function UIManager:updateFooter()
-    if not self.elements.footer then return end
-    
-    -- Update FPS
-    if self.elements.fpsIndicator then
-        local fps = math.floor(1 / Services.RunService.Heartbeat:Wait())
-        self.elements.fpsIndicator.Text = "FPS: " .. fps
-        
-        -- Color based on performance
-        if fps >= 50 then
-            self.elements.fpsIndicator.TextColor3 = self.theme.success
-        elseif fps >= 30 then
-            self.elements.fpsIndicator.TextColor3 = self.theme.warning
-        else
-            self.elements.fpsIndicator.TextColor3 = self.theme.error
-        end
-    end
-    
-    -- Update status
-    if self.elements.statusIndicator then
-        if GameState.scriptActive then
-            self.elements.statusIndicator.Text = "🟢 Active"
-            self.elements.statusIndicator.TextColor3 = self.theme.success
-        else
-            self.elements.statusIndicator.Text = "🟡 Standby"
-            self.elements.statusIndicator.TextColor3 = self.theme.warning
-        end
-    end
-    
-    -- Update time
-    if self.elements.timeIndicator then
-        self.elements.timeIndicator.Text = "⏰ " .. os.date("%X")
-    end
-end
-
--- Modern Settings Panel
-function UIManager:createModernSettingsPanel()
-    print("Building modern settings panel...")
-
-    gameData.settings = gameData.settings or {}
-    gameData.settings.autoBuyEnabled = gameData.settings.autoBuyEnabled or false
-    gameData.settings.autoLockEnabled = gameData.settings.autoLockEnabled or false
-    gameData.settings.autoCollectEnabled = gameData.settings.autoCollectEnabled or false
-
-    local panel = Instance.new("Frame")
-    panel.Name = "ModernSettingsPanel"
-    panel.Size = UDim2.new(0, 300, 0, 350)
-    panel.Position = UDim2.new(1, -320, 0, 90)
-    panel.BackgroundColor3 = self.theme.surface
-    panel.Visible = false
-    panel.ZIndex = 50
-    panel.Parent = self.elements.mainFrame
-
-    -- Clean shadow instead of accent border
-    local panelShadow = Instance.new("Frame")
-    panelShadow.Size = UDim2.new(1, 4, 1, 4)
-    panelShadow.Position = UDim2.new(0, -2, 0, -2)
-    panelShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    panelShadow.BackgroundTransparency = 0.9
-    panelShadow.BorderSizePixel = 0
-    panelShadow.ZIndex = 49
-    panelShadow.Parent = panel
-    
-    local panelShadowCorner = Instance.new("UICorner")
-    panelShadowCorner.CornerRadius = UDim.new(0, 18)
-    panelShadowCorner.Parent = panelShadow
 
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 16)
-    corner.Parent = panel
+    corner.Parent = mainFrame
 
-    -- Panel header
-    local panelHeader = Instance.new("Frame")
-    panelHeader.Size = UDim2.new(1, 0, 0, 50)
-    panelHeader.BackgroundColor3 = self.theme.primary
-    panelHeader.BorderSizePixel = 0
-    panelHeader.ZIndex = 51
-    panelHeader.Parent = panel
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 80)
+    stroke.Thickness = 2
+    stroke.Transparency = 0.3
+    stroke.Parent = mainFrame
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(25, 25, 35)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(12, 12, 18))
+    })
+    gradient.Rotation = 135
+    gradient.Parent = mainFrame
+
+    self.elements.screenGui = screenGui
+    self.elements.mainFrame = mainFrame
+
+    if self.createHeader then self:createHeader() end
+    if self.createSidebar then self:createSidebar() end
+    if self.createMainPanel then self:createMainPanel() end
+    if self.createFooter then self:createFooter() end
+    if self.createSettingsPanel then
+        self:createSettingsPanel()
+    end
+    if self.makeDraggable then self:makeDraggable() end
+
+    return screenGui
+end
+
+function UIManager:createHeader()
+    local header = Instance.new("Frame")
+    header.Name = "Header"
+    header.Size = UDim2.new(1, 0, 0, 60)
+    header.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+    header.BorderSizePixel = 0
+    header.Parent = self.elements.mainFrame
 
     local headerCorner = Instance.new("UICorner")
     headerCorner.CornerRadius = UDim.new(0, 16)
-    headerCorner.Parent = panelHeader
+    headerCorner.Parent = header
 
-    local headerTitle = Instance.new("TextLabel")
-    headerTitle.Size = UDim2.new(1, -20, 1, 0)
-    headerTitle.Position = UDim2.new(0, 20, 0, 0)
-    headerTitle.BackgroundTransparency = 1
-    headerTitle.Text = "🏐 Settings"
-    headerTitle.Font = Enum.Font.GothamBold
-    headerTitle.TextSize = 18
-    headerTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    headerTitle.TextXAlignment = Enum.TextXAlignment.Left
-    headerTitle.ZIndex = 52
-    headerTitle.Parent = panelHeader
+    local titleContainer = Instance.new("Frame")
+    titleContainer.Size = UDim2.new(0.6, 0, 1, 0)
+    titleContainer.Position = UDim2.new(0, 20, 0, 0)
+    titleContainer.BackgroundTransparency = 1
+    titleContainer.Parent = header
 
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 10)
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = panel
+    local title = Instance.new("TextLabel")
+    title.Name = "Title"
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.Position = UDim2.new(0, 0, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = SCRIPT_NAME
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 20
+    title.TextXAlignment = Enum.TextXAlignment.Left
+    title.Parent = titleContainer
 
-    local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 60)
-    padding.PaddingLeft = UDim.new(0, 15)
-    padding.PaddingRight = UDim.new(0, 15)
-    padding.PaddingBottom = UDim.new(0, 15)
-    padding.Parent = panel
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Size = UDim2.new(1, 0, 0, 15)
+    subtitle.Position = UDim2.new(0, 0, 0, 35)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = SCRIPT_VERSION
+    subtitle.TextColor3 = Color3.fromRGB(150, 150, 200)
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.TextSize = 11
+    subtitle.TextXAlignment = Enum.TextXAlignment.Left
+    subtitle.Parent = titleContainer
 
-    self.elements.settingsPanel = panel
+    -- Fixed minimize button with no aura
+    local minimizeButton = Instance.new("TextButton")
+    minimizeButton.Name = "MinimizeButton"
+    minimizeButton.Size = UDim2.new(0, 32, 0, 32)
+    minimizeButton.Position = UDim2.new(1, -40, 0.5, -16)
+    minimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    minimizeButton.Text = "−"
+    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    minimizeButton.Font = Enum.Font.GothamBold
+    minimizeButton.TextSize = 20
+    minimizeButton.BorderSizePixel = 0
+    minimizeButton.AutoButtonColor = false  -- This prevents the default aura
+    minimizeButton.Parent = header
+
+    local minCorner = Instance.new("UICorner")
+    minCorner.CornerRadius = UDim.new(0, 6)
+    minCorner.Parent = minimizeButton
+
+    -- Settings button (gear icon)
+    local settingsButton = Instance.new("ImageButton")
+    settingsButton.Name = "SettingsButton"
+    settingsButton.Size = UDim2.new(0, 32, 0, 32)
+    settingsButton.Position = UDim2.new(1, -80, 0.5, -16)
+    settingsButton.BackgroundTransparency = 1
+    settingsButton.Image = "rbxassetid://6031280882"
+    settingsButton.Parent = header
+
+    self.elements.header = header
+    self.elements.title = title
+    self.elements.settingsButton = settingsButton
+    self.elements.minimizeButton = minimizeButton
+
+    -- Connect minimize button only
+    minimizeButton.MouseButton1Click:Connect(function()
+        self:minimizeToSquare()
+    end)
+
+    -- Connect settings button
+    settingsButton.MouseButton1Click:Connect(function()
+        self:toggleSettingsPanel()
+    end)
+
+    -- Manual hover effects to replace AutoButtonColor
+    minimizeButton.MouseEnter:Connect(function()
+        minimizeButton.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    end)
+
+    minimizeButton.MouseLeave:Connect(function()
+        minimizeButton.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    end)
 end
 
 function UIManager:toggleSettingsPanel()
@@ -2398,322 +2315,45 @@ function UIManager:toggleSettingsPanel()
     p.Visible = not p.Visible
 end
 
--- Create modern sidebar
-function UIManager:createModernSidebar()
-    local sidebar = Instance.new("Frame")
-    sidebar.Name = "ModernSidebar"
-    sidebar.Size = UDim2.new(0, 350, 1, -160)
-    sidebar.Position = UDim2.new(0, 20, 0, 90)
-    sidebar.BackgroundColor3 = self.theme.surface
-    sidebar.BorderSizePixel = 0
-    sidebar.ZIndex = 5
-    sidebar.Parent = self.elements.mainFrame
-    
-    local sidebarCorner = Instance.new("UICorner")
-    sidebarCorner.CornerRadius = UDim.new(0, 20)
-    sidebarCorner.Parent = sidebar
-    
-    -- Subtle shadow instead of accent border
-    local sidebarShadow = Instance.new("Frame")
-    sidebarShadow.Size = UDim2.new(1, 4, 1, 4)
-    sidebarShadow.Position = UDim2.new(0, -2, 0, -2)
-    sidebarShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    sidebarShadow.BackgroundTransparency = 0.9
-    sidebarShadow.BorderSizePixel = 0
-    sidebarShadow.ZIndex = 4
-    sidebarShadow.Parent = sidebar
-    
-    local sidebarShadowCorner = Instance.new("UICorner")
-    sidebarShadowCorner.CornerRadius = UDim.new(0, 22)
-    sidebarShadowCorner.Parent = sidebarShadow
-    
-    -- Sidebar header
-    local sidebarHeader = Instance.new("Frame")
-    sidebarHeader.Size = UDim2.new(1, 0, 0, 50)
-    sidebarHeader.BackgroundColor3 = self.theme.primary
-    sidebarHeader.BorderSizePixel = 0
-    sidebarHeader.ZIndex = 6
-    sidebarHeader.Parent = sidebar
-    
-    local sidebarHeaderCorner = Instance.new("UICorner")
-    sidebarHeaderCorner.CornerRadius = UDim.new(0, 20)
-    sidebarHeaderCorner.Parent = sidebarHeader
-    
-    local sidebarTitle = Instance.new("TextLabel")
-    sidebarTitle.Size = UDim2.new(1, -20, 1, 0)
-    sidebarTitle.Position = UDim2.new(0, 20, 0, 0)
-    sidebarTitle.BackgroundTransparency = 1
-    sidebarTitle.Text = "📊 Character Tracker"
-    sidebarTitle.Font = Enum.Font.GothamBold
-    sidebarTitle.TextSize = 16
-    sidebarTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sidebarTitle.TextXAlignment = Enum.TextXAlignment.Left
-    sidebarTitle.ZIndex = 7
-    sidebarTitle.Parent = sidebarHeader
-    
-    self.elements.sidebar = sidebar
-end
+-- Updated createSettingsPanel function - starts hidden
+function UIManager:createSettingsPanel()
+    print("Building settings panel...")
 
--- Create modern main panel
-function UIManager:createModernMainPanel()
-    local mainPanel = Instance.new("Frame")
-    mainPanel.Name = "ModernMainPanel"
-    mainPanel.Size = UDim2.new(0, 600, 1, -160)
-    mainPanel.Position = UDim2.new(0, 390, 0, 90)
-    mainPanel.BackgroundColor3 = self.theme.surface
-    mainPanel.BorderSizePixel = 0
-    mainPanel.ZIndex = 5
-    mainPanel.Parent = self.elements.mainFrame
-    
-    local mainPanelCorner = Instance.new("UICorner")
-    mainPanelCorner.CornerRadius = UDim.new(0, 20)
-    mainPanelCorner.Parent = mainPanel
-    
-    -- Subtle shadow instead of accent border
-    local mainPanelShadow = Instance.new("Frame")
-    mainPanelShadow.Size = UDim2.new(1, 4, 1, 4)
-    mainPanelShadow.Position = UDim2.new(0, -2, 0, -2)
-    mainPanelShadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    mainPanelShadow.BackgroundTransparency = 0.9
-    mainPanelShadow.BorderSizePixel = 0
-    mainPanelShadow.ZIndex = 4
-    mainPanelShadow.Parent = mainPanel
-    
-    local mainPanelShadowCorner = Instance.new("UICorner")
-    mainPanelShadowCorner.CornerRadius = UDim.new(0, 22)
-    mainPanelShadowCorner.Parent = mainPanelShadow
-    
-    -- Main panel header
-    local mainPanelHeader = Instance.new("Frame")
-    mainPanelHeader.Size = UDim2.new(1, 0, 0, 50)
-    mainPanelHeader.BackgroundColor3 = self.theme.primary
-    mainPanelHeader.BorderSizePixel = 0
-    mainPanelHeader.ZIndex = 6
-    mainPanelHeader.Parent = mainPanel
-    
-    local mainPanelHeaderCorner = Instance.new("UICorner")
-    mainPanelHeaderCorner.CornerRadius = UDim.new(0, 20)
-    mainPanelHeaderCorner.Parent = mainPanelHeader
-    
-    local mainPanelTitle = Instance.new("TextLabel")
-    mainPanelTitle.Size = UDim2.new(1, -20, 1, 0)
-    mainPanelTitle.Position = UDim2.new(0, 20, 0, 0)
-    mainPanelTitle.BackgroundTransparency = 1
-    mainPanelTitle.Text = "🎮 Game Statistics"
-    mainPanelTitle.Font = Enum.Font.GothamBold
-    mainPanelTitle.TextSize = 16
-    mainPanelTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
-    mainPanelTitle.TextXAlignment = Enum.TextXAlignment.Left
-    mainPanelTitle.ZIndex = 7
-    mainPanelTitle.Parent = mainPanelHeader
-    
-    self.elements.mainPanel = mainPanel
-end
+    gameData.settings = gameData.settings or {}
+    gameData.settings.autoBuyEnabled = gameData.settings.autoBuyEnabled or false
+    gameData.settings.autoLockEnabled = gameData.settings.autoLockEnabled or false
+    gameData.settings.autoCollectEnabled = gameData.settings.autoCollectEnabled or false
 
--- Create modern footer
-function UIManager:createModernFooter()
-    local footer = Instance.new("Frame")
-    footer.Name = "ModernFooter"
-    footer.Size = UDim2.new(1, 0, 0, 60)
-    footer.Position = UDim2.new(0, 0, 1, -60)
-    footer.BackgroundColor3 = self.theme.surface
-    footer.BorderSizePixel = 0
-    footer.ZIndex = 5
-    footer.Parent = self.elements.mainFrame
-    
-    local footerCorner = Instance.new("UICorner")
-    footerCorner.CornerRadius = UDim.new(0, 24)
-    footerCorner.Parent = footer
-    
-    -- Status indicators
-    local statusContainer = Instance.new("Frame")
-    statusContainer.Size = UDim2.new(1, -40, 1, 0)
-    statusContainer.Position = UDim2.new(0, 20, 0, 0)
-    statusContainer.BackgroundTransparency = 1
-    statusContainer.ZIndex = 6
-    statusContainer.Parent = footer
-    
-    local statusLayout = Instance.new("UIListLayout")
-    statusLayout.FillDirection = Enum.FillDirection.Horizontal
-    statusLayout.Padding = UDim.new(0, 20)
-    statusLayout.VerticalAlignment = Enum.VerticalAlignment.Center
-    statusLayout.Parent = statusContainer
-    
-    -- FPS indicator
-    local fpsIndicator = Instance.new("TextLabel")
-    fpsIndicator.Size = UDim2.new(0, 100, 0, 30)
-    fpsIndicator.BackgroundTransparency = 1
-    fpsIndicator.Text = "FPS: 60"
-    fpsIndicator.Font = Enum.Font.GothamBold
-    fpsIndicator.TextSize = 14
-    fpsIndicator.TextColor3 = self.theme.success
-    fpsIndicator.TextXAlignment = Enum.TextXAlignment.Left
-    fpsIndicator.ZIndex = 7
-    fpsIndicator.Parent = statusContainer
-    
-    -- Status indicator
-    local statusIndicator = Instance.new("TextLabel")
-    statusIndicator.Size = UDim2.new(0, 150, 0, 30)
-    statusIndicator.BackgroundTransparency = 1
-    statusIndicator.Text = "🟢 Active"
-    statusIndicator.Font = Enum.Font.GothamBold
-    statusIndicator.TextSize = 14
-    statusIndicator.TextColor3 = self.theme.success
-    statusIndicator.TextXAlignment = Enum.TextXAlignment.Left
-    statusIndicator.ZIndex = 7
-    statusIndicator.Parent = statusContainer
-    
-    -- Time indicator
-    local timeIndicator = Instance.new("TextLabel")
-    timeIndicator.Size = UDim2.new(0, 200, 0, 30)
-    timeIndicator.BackgroundTransparency = 1
-    timeIndicator.Text = "⏰ " .. os.date("%X")
-    timeIndicator.Font = Enum.Font.Gotham
-    timeIndicator.TextSize = 14
-    timeIndicator.TextColor3 = self.theme.textSecondary
-    timeIndicator.TextXAlignment = Enum.TextXAlignment.Left
-    timeIndicator.ZIndex = 7
-    timeIndicator.Parent = statusContainer
-    
-    self.elements.footer = footer
-    self.elements.fpsIndicator = fpsIndicator
-    self.elements.statusIndicator = statusIndicator
-    self.elements.timeIndicator = timeIndicator
-end
+    local panel = Instance.new("Frame")
+    panel.Name = "SettingsPanel"
+    panel.Size = UDim2.new(0, 200, 0, 180)  -- Reduced from 220x240 to 200x180
+    panel.Position = UDim2.new(1, -210, 0, 65)  -- Adjusted position
+    panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+    panel.Visible = false
+    panel.ZIndex = 50
+    panel.Parent = self.elements.mainFrame
 
-function UIManager:createModernHeader()
-    local header = Instance.new("Frame")
-    header.Name = "Header"
-    header.Size = UDim2.new(1, 0, 0, 80)
-    header.Position = UDim2.new(0, 0, 0, 0)
-    header.BackgroundColor3 = self.theme.primary
-    header.BorderSizePixel = 0
-    header.ZIndex = 5
-    header.Parent = self.elements.mainFrame
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(60, 60, 80)
+    stroke.Thickness = 1
+    stroke.Transparency = 0.2
+    stroke.Parent = panel
 
-    local headerCorner = Instance.new("UICorner")
-    headerCorner.CornerRadius = UDim.new(0, 24)
-    headerCorner.Parent = header
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 12)
+    corner.Parent = panel
 
-    -- Volleyball logo
-    local logo = Instance.new("Frame")
-    logo.Size = UDim2.new(0, 50, 0, 50)
-    logo.Position = UDim2.new(0, 20, 0.5, -25)
-    logo.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-    logo.BorderSizePixel = 0
-    logo.ZIndex = 6
-    logo.Parent = header
+    local layout = Instance.new("UIListLayout")
+    layout.Padding = UDim.new(0, 6)  -- Reduced from 8
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = panel
 
-    local logoCorner = Instance.new("UICorner")
-    logoCorner.CornerRadius = UDim.new(0.5, 0)
-    logoCorner.Parent = logo
-
-    -- Volleyball lines
-    local line1 = Instance.new("Frame")
-    line1.Size = UDim2.new(0, 2, 1, 0)
-    line1.Position = UDim2.new(0.5, -1, 0, 0)
-    line1.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    line1.BorderSizePixel = 0
-    line1.ZIndex = 7
-    line1.Parent = logo
-
-    local line2 = Instance.new("Frame")
-    line2.Size = UDim2.new(1, 0, 0, 2)
-    line2.Position = UDim2.new(0, 0, 0.5, -1)
-    line2.BackgroundColor3 = Color3.fromRGB(200, 60, 30)
-    line2.BorderSizePixel = 0
-    line2.ZIndex = 7
-    line2.Parent = logo
-
-    -- Title
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(0, 300, 1, 0)
-    title.Position = UDim2.new(0, 80, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "🏐 " .. SCRIPT_NAME
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 24
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.ZIndex = 6
-    title.Parent = header
-
-    -- Version
-    local version = Instance.new("TextLabel")
-    version.Size = UDim2.new(0, 200, 0, 20)
-    version.Position = UDim2.new(0, 80, 0, 45)
-    version.BackgroundTransparency = 1
-    version.Text = SCRIPT_VERSION
-    version.Font = Enum.Font.Gotham
-    version.TextSize = 12
-    version.TextColor3 = Color3.fromRGB(200, 200, 200)
-    version.TextXAlignment = Enum.TextXAlignment.Left
-    version.ZIndex = 6
-    version.Parent = header
-
-    -- Settings button
-    local settingsButton = Instance.new("TextButton")
-    settingsButton.Size = UDim2.new(0, 80, 0, 35)
-    settingsButton.Position = UDim2.new(1, -180, 0.5, -17.5)
-    settingsButton.BackgroundColor3 = self.theme.surface
-    settingsButton.BorderSizePixel = 0
-    settingsButton.Text = "⚙️ Settings"
-    settingsButton.TextColor3 = self.theme.text
-    settingsButton.Font = Enum.Font.GothamBold
-    settingsButton.TextSize = 12
-    settingsButton.AutoButtonColor = false
-    settingsButton.ZIndex = 6
-    settingsButton.Parent = header
-
-    local settingsCorner = Instance.new("UICorner")
-    settingsCorner.CornerRadius = UDim.new(0, 8)
-    settingsCorner.Parent = settingsButton
-
-    -- Minimize button
-    local minimizeButton = Instance.new("TextButton")
-    minimizeButton.Size = UDim2.new(0, 80, 0, 35)
-    minimizeButton.Position = UDim2.new(1, -90, 0.5, -17.5)
-    minimizeButton.BackgroundColor3 = self.theme.primary
-    minimizeButton.BorderSizePixel = 0
-    minimizeButton.Text = "🏐 Hide"
-    minimizeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minimizeButton.Font = Enum.Font.GothamBold
-    minimizeButton.TextSize = 12
-    minimizeButton.AutoButtonColor = false
-    minimizeButton.ZIndex = 6
-    minimizeButton.Parent = header
-
-    local minimizeCorner = Instance.new("UICorner")
-    minimizeCorner.CornerRadius = UDim.new(0, 8)
-    minimizeCorner.Parent = minimizeButton
-
-    -- Store references
-    self.elements.header = header
-    self.elements.settingsButton = settingsButton
-    self.elements.minimizeButton = minimizeButton
-
-    -- Connect buttons
-    minimizeButton.MouseButton1Click:Connect(function()
-        self:minimizeToSquare()
-    end)
-
-    settingsButton.MouseButton1Click:Connect(function()
-        self:toggleSettingsPanel()
-    end)
-
-    -- Hover effects
-    settingsButton.MouseEnter:Connect(function()
-        Services.TweenService:Create(settingsButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = Color3.fromRGB(55, 55, 65)
-        }):Play()
-    end)
-
-    settingsButton.MouseLeave:Connect(function()
-        Services.TweenService:Create(settingsButton, TweenInfo.new(0.2), {
-            BackgroundColor3 = self.theme.surface
-        }):Play()
-    end)
-end
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, 8)     -- Reduced from 10
+    padding.PaddingLeft = UDim.new(0, 8)    -- Reduced from 10
+    padding.PaddingRight = UDim.new(0, 8)   -- Reduced from 10
+    padding.PaddingBottom = UDim.new(0, 8)  -- Added bottom padding
+    padding.Parent = panel
 
     local function makeSwitch(labelText, settingKey, callback, order)
         local container = Instance.new("Frame")
@@ -3712,7 +3352,7 @@ function UIManager:updateCharacterList()
                 row.labels.lastSeen.Text = "Never"
             end
 
-            row.labels.priority.Text = string.format("%.1f", (10 - charData.tier) * charData.multiplier)
+            row.labels.priority.Text = string.format("%d", charData.income or 0)
         end
 
         local function initialize()
