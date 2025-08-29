@@ -1441,8 +1441,7 @@ end
 local AutoLock = {
     active = false,
     connection = nil,
-    eventConnection = nil,
-    checkInterval = 2, -- Check every 2 seconds instead of 1
+    checkInterval = 3, -- Check every 3 seconds
     timer = 0,
     lastLogTime = 0,
     successfulLocks = 0,
@@ -1457,14 +1456,9 @@ function AutoLock:toggle()
         self.connection:Disconnect()
         self.connection = nil
     end
-    
-    if self.eventConnection then
-        self.eventConnection:Disconnect()
-        self.eventConnection = nil
-    end
 
     if self.active then
-        print("Auto Lock system STARTED (Event-Based)")
+        print("Auto Lock system STARTED (Polling Mode)")
         
         -- Initial lock attempt only if needed
         if not isDoorLocked() then
@@ -1478,30 +1472,14 @@ function AutoLock:toggle()
         self.lastLogTime = 0
         self.successfulLocks = 0
         
-        -- Listen for door lock state changes
-        pcall(function()
-            local replicatedStorage = game:GetService("ReplicatedStorage")
-            if replicatedStorage and replicatedStorage.Events and replicatedStorage.Events.DoorLockStateChanged then
-                self.eventConnection = replicatedStorage.Events.DoorLockStateChanged.OnClientEvent:Connect(function(...)
-                    -- When door state changes, check if we need to lock
-                    task.wait(0.1) -- Small delay to ensure state is updated
-                    if self.active and not isDoorLocked() then
-                        lockDoor()
-                        self.successfulLocks = self.successfulLocks + 1
-                        print("🔓 Door unlocked event detected - locked it (#" .. self.successfulLocks .. ")")
-                    end
-                end)
-            end
-        end)
-        
-        -- Backup timer check every 5 seconds (less frequent)
+        -- Simple polling every 3 seconds
         self.connection = Services.RunService.Heartbeat:Connect(function(dt)
             self.timer = (self.timer or 0) + dt
-            if self.timer >= 5 then -- Check every 5 seconds as backup
+            if self.timer >= 3 then -- Check every 3 seconds
                 if self.active and not isDoorLocked() then
                     lockDoor()
                     self.successfulLocks = self.successfulLocks + 1
-                    print("🔓 Backup check - door was unlocked, locked it (#" .. self.successfulLocks .. ")")
+                    print("🔓 Door was unlocked - locked it (#" .. self.successfulLocks .. ")")
                 end
                 self.timer = 0
             end
@@ -3561,4 +3539,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("me")
+print("heh")
