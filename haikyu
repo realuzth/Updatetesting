@@ -1414,36 +1414,11 @@ local function collectAllCash()
     end
 end
 
--- Check if door is already locked using blockade detection
-local function isDoorLocked()
-    local player = Services.Players.LocalPlayer
-    if not player then return false end
-    
-    -- Get player's locker room number
-    local lockerRoomName = "LockerRoom" .. tostring(player.UserId % 8 + 1)
-    
-    -- Check if blockade exists (locked state)
-    local success, doorLockPath = pcall(function()
-        return workspace.Map.Rooms[lockerRoomName].DoorLock
-    end)
-    
-    if not success or not doorLockPath then return false end
-    
-    local blockade = doorLockPath:FindFirstChild("Blockade")
-    if blockade and blockade.Parent then
-        -- Blockade exists and is parented = door is locked
-        return true
-    end
-    
-    -- No blockade or not parented = door is unlocked
-    return false
-end
-
 -- Auto Lock System
 local AutoLock = {
     active = false,
     connection = nil,
-    interval = 2,
+    interval = 1,
     timer = 0,
     lastLogTime = 0,
     successfulLocks = 0
@@ -1459,16 +1434,8 @@ function AutoLock:toggle()
     end
 
     if self.active then
-        print("Auto Lock system STARTED (Smart Mode)")
-        
-        -- Initial check and lock if needed
-        if not isDoorLocked() then
-            lockDoor()
-            print("🔓 Initial lock - door was unlocked")
-        else
-            print("🔒 Door already locked")
-        end
-        
+        print("Auto Lock system STARTED")
+        lockDoor()
         self.timer = 0
         self.lastLogTime = 0
         self.successfulLocks = 0
@@ -1477,12 +1444,7 @@ function AutoLock:toggle()
             self.timer = (self.timer or 0) + dt
             if self.timer >= self.interval then
                 if self.active then
-                    -- Only lock if door is actually unlocked
-                    if not isDoorLocked() then
-                        lockDoor()
-                        self.successfulLocks = self.successfulLocks + 1
-                        print("🔓 Door unlocked - locked it (#" .. self.successfulLocks .. ")")
-                    end
+                    lockDoor()
                 end
                 self.timer = 0
             end
@@ -3542,4 +3504,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hello")
+print("hel")
