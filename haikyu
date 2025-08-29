@@ -650,8 +650,8 @@ function AutoBuySystem:isCharacterPurchasedByOther(character)
     local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
     if not prompt or not prompt:IsA("ProximityPrompt") then return false end
     
-    local uid = getCharacterUID(character)
-    if not uid then return false end
+    -- Use simpler UID generation to avoid nil errors
+    local uid = character.Name .. "_" .. tostring(character:GetDebugId())
     
     -- Check if someone else fired this prompt (not us)
     if self.promptFiredBy[uid] and self.promptFiredBy[uid] ~= player then
@@ -717,8 +717,8 @@ end
 
 -- Check if character was purchased by us specifically
 local function isCharacterPurchasedByUs(character)
-    local uid = getCharacterUID(character)
-    if not uid then return false end
+    -- Use simpler UID generation to avoid nil errors
+    local uid = character.Name .. "_" .. tostring(character:GetDebugId())
     
     -- Check if we marked this specific instance as purchased
     local purchaseData = AutoBuySystem.purchasedCharacters[uid]
@@ -1003,8 +1003,8 @@ function AutoBuySystem:monitorCharacterPrompt(character)
     local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
     if not prompt or not prompt:IsA("ProximityPrompt") then return end
     
-    local uid = getCharacterUID(character)
-    if not uid then return end
+    -- Use simpler UID generation to avoid nil errors
+    local uid = character.Name .. "_" .. tostring(character:GetDebugId())
     
     -- Clean up existing connection if any
     if self.promptConnections[uid] then
@@ -3504,3 +3504,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
+print("hello")
