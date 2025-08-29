@@ -515,13 +515,15 @@ local AutoBuySystem = {
     active = false,
     currentTarget = nil,
     currentTargetName = nil,
-    purchasing = false,
-    lastTargetUpdate = 0,
     purchasedCharacters = {},
     purchaseInProgress = {},
-    characterInstances = {},  -- Track specific character instances
-    movementTracking = {},    -- Track character movement
-    spawnLocationCache = {}   -- Cache spawn locations
+    characterInstances = {},  
+    movementTracking = {},    
+    spawnLocationCache = {},   
+    lastTargetUpdate = 0,
+    lastRebuyTarget = nil,
+    promptFiredBy = {},  
+    promptConnections = {}  
 }
 
 -- Get player's spawn location
@@ -637,47 +639,32 @@ local function isCharacterHeadingToSpawn(character, spawnLocation)
     return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
 end
 
--- Enhanced purchase detection based on character movement direction
+-- Purchase detection using proximity prompt event monitoring
 function AutoBuySystem:isCharacterPurchasedByOther(character)
     if not character or not character.Parent then return false end
     if not character:FindFirstChild("HumanoidRootPart") then return false end
     
-    local humanoidRootPart = character.HumanoidRootPart
-    local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoid then return false end
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
+    if not torso then return false end
     
-    -- Get player's spawn location
-    local playerSpawn = getPlayerSpawnLocation()
-    if not playerSpawn then return false end
+    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
+    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
     
-    -- Get all other spawn locations
-    local otherSpawns = getOtherSpawnLocations()
-    if #otherSpawns == 0 then return false end
+    local uid = getCharacterUID(character)
+    if not uid then return false end
     
-    -- Check if character is moving
-    local moveVector = humanoid.MoveDirection
-    if moveVector.Magnitude < 0.1 then return false end -- Not moving
+    -- Check if someone else fired this prompt (not us)
+    if self.promptFiredBy[uid] and self.promptFiredBy[uid] ~= player then
+        print("🔍 PURCHASE DETECTED: " .. character.Name .. " bought by " .. tostring(self.promptFiredBy[uid]))
+        return true
+    end
     
-    local charPosition = humanoidRootPart.Position
-    local playerSpawnPos = playerSpawn.Position
-    
-    -- Calculate direction to player spawn
-    local dirToPlayerSpawn = (playerSpawnPos - charPosition).Unit
-    local dotToPlayer = moveVector:Dot(dirToPlayerSpawn)
-    
-    -- Check if heading towards any other spawn location
-    for _, otherSpawn in ipairs(otherSpawns) do
-        local otherSpawnPos = otherSpawn.Position
-        local dirToOtherSpawn = (otherSpawnPos - charPosition).Unit
-        local dotToOther = moveVector:Dot(dirToOtherSpawn)
-        
-        -- If character is moving towards another spawn (dot > 0.7) and not towards player spawn
-        if dotToOther > 0.7 and dotToPlayer < 0.5 then
-            local distanceToOther = (otherSpawnPos - charPosition).Magnitude
-            if distanceToOther < CONFIG.SPAWN_CHECK_DISTANCE then
-                print("🔍 PURCHASE DETECTED: " .. character.Name .. " heading to another player's spawn")
-                return true
-            end
+    -- Check if proximity prompt is disabled (backup method)
+    if not prompt.Enabled then
+        -- If we didn't fire it, someone else did
+        if not self.promptFiredBy[uid] or self.promptFiredBy[uid] ~= player then
+            print("🔍 PURCHASE DETECTED: " .. character.Name .. " prompt disabled by other player")
+            return true
         end
     end
     
@@ -728,25 +715,15 @@ local function getCharacterUID(character)
     return character.Name .. "_" .. tostring(creationTime)
 end
 
--- Enhanced function to check if character was purchased by tracking instance existence
-local function isCharacterPurchasedAndStillExists(character)
+-- Check if character was purchased by us specifically
+local function isCharacterPurchasedByUs(character)
     local uid = getCharacterUID(character)
     if not uid then return false end
     
     -- Check if we marked this specific instance as purchased
     local purchaseData = AutoBuySystem.purchasedCharacters[uid]
-    if purchaseData then
-        -- Verify the character instance still exists in workspace
-        if character.Parent == workspace then
-            return true -- We bought it and it's still there
-        else
-            -- Character was removed (likely bought by someone else after us)
-            -- Clear our purchase record so we can buy it again if it respawns
-            AutoBuySystem.purchasedCharacters[uid] = nil
-            AutoBuySystem.characterInstances[character.Name] = nil
-            print("🔄 Character " .. character.Name .. " was removed after purchase - ready to buy again")
-            return false
-        end
+    if purchaseData and character.Parent == workspace then
+        return true
     end
     
     -- Check if we're currently trying to purchase it
@@ -754,14 +731,13 @@ local function isCharacterPurchasedAndStillExists(character)
         return true
     end
     
-    -- Track this instance if we haven't seen it before
-    if not AutoBuySystem.characterInstances[character.Name] then
-        AutoBuySystem.characterInstances[character.Name] = {}
+    -- Clean up stale purchase records
+    if purchaseData and character.Parent ~= workspace then
+        AutoBuySystem.purchasedCharacters[uid] = nil
+        if AutoBuySystem.characterInstances[character.Name] then
+            AutoBuySystem.characterInstances[character.Name][uid] = nil
+        end
     end
-    AutoBuySystem.characterInstances[character.Name][uid] = {
-        character = character,
-        firstSeen = tick()
-    }
     
     return false
 end
@@ -810,11 +786,17 @@ end
 
 -- Check if character has already been purchased (enhanced version)
 local function isCharacterPurchased(character)
-    -- First run respawn detection for this character type
-    detectCharacterRespawn(character.Name)
+    -- Check if we purchased this character
+    if isCharacterPurchasedByUs(character) then
+        return true
+    end
     
-    -- Then check if this specific instance was purchased
-    return isCharacterPurchasedAndStillExists(character)
+    -- Check if someone else purchased this character
+    if AutoBuySystem:isCharacterPurchasedByOther(character) then
+        return true
+    end
+    
+    return false
 end
 
 -- Mark character as purchased (enhanced version)
@@ -971,26 +953,111 @@ function AutoBuySystem:toggle()
     gameData.settings.autoBuyEnabled = self.active
     
     if self.active then
-        self.purchasedCharacters = {}
-        self.purchaseInProgress = {}
-        self.characterInstances = {}  -- Clear instance tracking
-        spawn(function() self:mainLoop() end)
-        print("🤖 Auto Buy system ENABLED (Enhanced with re-purchase detection)")
+        print("🎆 Auto Buy system STARTED (Enhanced)")
+        self:setupPromptMonitoring()
+        spawn(function()
+            self:mainLoop()
+        end)
     else
+        print("🛑 Auto Buy system STOPPED")
+        self:cleanupPromptMonitoring()
         self.currentTarget = nil
         self.currentTargetName = nil
         if humanoid then
             humanoid:MoveTo(humanoidRootPart.Position)
         end
-        self.purchasedCharacters = {}
-        self.purchaseInProgress = {}
-        self.characterInstances = {}
-        print("🛑 Auto Buy system DISABLED")
     end
 
     if DataManager and DataManager.save then
         DataManager:save(gameData)
     end
+end
+
+-- Setup proximity prompt monitoring to detect who fires prompts
+function AutoBuySystem:setupPromptMonitoring()
+    print("🔍 Setting up proximity prompt monitoring...")
+    
+    -- Monitor all existing characters
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj:IsA("Model") and COMPLETE_DATABASE[obj.Name] then
+            self:monitorCharacterPrompt(obj)
+        end
+    end
+    
+    -- Monitor new characters as they spawn
+    self.workspaceConnection = workspace.ChildAdded:Connect(function(child)
+        if child:IsA("Model") and COMPLETE_DATABASE[child.Name] then
+            task.wait(0.1) -- Small delay to ensure prompt is loaded
+            self:monitorCharacterPrompt(child)
+        end
+    end)
+end
+
+-- Monitor a specific character's proximity prompt
+function AutoBuySystem:monitorCharacterPrompt(character)
+    if not character or not character.Parent then return end
+    
+    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
+    if not torso then return end
+    
+    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
+    if not prompt or not prompt:IsA("ProximityPrompt") then return end
+    
+    local uid = getCharacterUID(character)
+    if not uid then return end
+    
+    -- Clean up existing connection if any
+    if self.promptConnections[uid] then
+        self.promptConnections[uid]:Disconnect()
+    end
+    
+    -- Monitor prompt triggered event
+    self.promptConnections[uid] = prompt.Triggered:Connect(function(playerWhoTriggered)
+        self.promptFiredBy[uid] = playerWhoTriggered
+        
+        if playerWhoTriggered == player then
+            print("✅ We fired prompt for: " .. character.Name)
+        else
+            print("🔍 Other player (" .. playerWhoTriggered.Name .. ") fired prompt for: " .. character.Name)
+        end
+        
+        -- Clean up after 30 seconds
+        task.delay(30, function()
+            if self.promptFiredBy[uid] then
+                self.promptFiredBy[uid] = nil
+            end
+        end)
+    end)
+    
+    -- Clean up connection when character is removed
+    character.AncestryChanged:Connect(function()
+        if not character.Parent and self.promptConnections[uid] then
+            self.promptConnections[uid]:Disconnect()
+            self.promptConnections[uid] = nil
+        end
+    end)
+end
+
+-- Cleanup proximity prompt monitoring
+function AutoBuySystem:cleanupPromptMonitoring()
+    print("🧹 Cleaning up proximity prompt monitoring...")
+    
+    -- Disconnect workspace connection
+    if self.workspaceConnection then
+        self.workspaceConnection:Disconnect()
+        self.workspaceConnection = nil
+    end
+    
+    -- Disconnect all prompt connections
+    for uid, connection in pairs(self.promptConnections) do
+        if connection then
+            connection:Disconnect()
+        end
+    end
+    
+    -- Clear tracking data
+    self.promptConnections = {}
+    self.promptFiredBy = {}
 end
 
 function AutoBuySystem:findBestTarget()
