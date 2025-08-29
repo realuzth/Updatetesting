@@ -1266,16 +1266,60 @@ function AutoBuySystem:mainLoop()
     print("🛑 Auto Buy main loop stopped")
 end
 
+-- Check if door is already locked
+local function isDoorLocked()
+    local lockerRoom = getPlayerLockerRoom()
+    if not lockerRoom then return false end
+
+    local buttons = lockerRoom:FindFirstChild("Buttons")
+    if not buttons then return false end
+
+    local lockButton = buttons:FindFirstChild("DoorLockButton")
+    if not lockButton then return false end
+    
+    -- Check if button indicates locked state (common indicators)
+    local buttonPart = lockButton:FindFirstChild("ButtonPressPartOO") or lockButton:FindFirstChild("Part")
+    if buttonPart then
+        -- Check for visual indicators of locked state
+        if buttonPart.BrickColor == BrickColor.new("Bright red") or 
+           buttonPart.Color == Color3.fromRGB(255, 0, 0) or
+           buttonPart.Material == Enum.Material.Neon then
+            return true
+        end
+        
+        -- Check for proximity prompt text indicating locked state
+        local proximityPrompt = buttonPart:FindFirstChildOfClass("ProximityPrompt")
+        if proximityPrompt and proximityPrompt.ActionText then
+            local actionText = proximityPrompt.ActionText:lower()
+            if actionText:find("unlock") or actionText:find("locked") then
+                return true
+            end
+        end
+    end
+    
+    -- Check for lock status attributes or values
+    local lockStatus = lockButton:FindFirstChild("LockStatus") or lockButton:FindFirstChild("IsLocked")
+    if lockStatus then
+        if lockStatus:IsA("BoolValue") and lockStatus.Value then
+            return true
+        elseif lockStatus:IsA("StringValue") and lockStatus.Value:lower() == "locked" then
+            return true
+        end
+    end
+    
+    return false
+end
+
 -- Lock door function
 local function lockDoor()
     local lockerRoom = getPlayerLockerRoom()
-    if not lockerRoom then return end
+    if not lockerRoom then return false end
 
     local buttons = lockerRoom:FindFirstChild("Buttons")
-    if not buttons then return end
+    if not buttons then return false end
 
     local lockButton = buttons:FindFirstChild("DoorLockButton")
-    if not lockButton then return end
+    if not lockButton then return false end
 
     local success = false
     
@@ -1418,10 +1462,11 @@ end
 local AutoLock = {
     active = false,
     connection = nil,
-    interval = 1,
+    checkInterval = 2, -- Check every 2 seconds instead of 1
     timer = 0,
     lastLogTime = 0,
-    successfulLocks = 0
+    successfulLocks = 0,
+    lastLockCheck = 0
 }
 
 function AutoLock:toggle()
@@ -1434,17 +1479,32 @@ function AutoLock:toggle()
     end
 
     if self.active then
-        print("Auto Lock system STARTED")
-        lockDoor()
+        print("Auto Lock system STARTED (Smart Mode)")
+        -- Initial lock attempt
+        if not isDoorLocked() then
+            lockDoor()
+        else
+            print("🔒 Door already locked - skipping initial lock")
+        end
+        
         self.timer = 0
         self.lastLogTime = 0
         self.successfulLocks = 0
+        self.lastLockCheck = 0
         
         self.connection = Services.RunService.Heartbeat:Connect(function(dt)
             self.timer = (self.timer or 0) + dt
-            if self.timer >= self.interval then
+            if self.timer >= self.checkInterval then
                 if self.active then
-                    lockDoor()
+                    -- Only attempt to lock if door is not already locked
+                    if not isDoorLocked() then
+                        print("🔓 Door unlocked - attempting to lock...")
+                        local success = lockDoor()
+                        if success then
+                            self.successfulLocks = self.successfulLocks + 1
+                            print("✅ Door locked successfully")
+                        end
+                    end
                 end
                 self.timer = 0
             end
@@ -3504,4 +3564,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hel")
+print("hello locking?")
