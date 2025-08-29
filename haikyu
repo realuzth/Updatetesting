@@ -1267,31 +1267,25 @@ function AutoBuySystem:mainLoop()
     print("🛑 Auto Buy main loop stopped")
 end
 
--- Check if door is already locked
+-- Check if door is already locked using game's actual lock mechanics
 local function isDoorLocked()
-    local lockerRoom = getPlayerLockerRoom()
-    if not lockerRoom then return false end
-
-    local buttons = lockerRoom:FindFirstChild("Buttons")
-    if not buttons then return false end
-
-    local lockButton = buttons:FindFirstChild("DoorLockButton")
-    if not lockButton then return false end
+    local player = Services.Players.LocalPlayer
+    if not player then return false end
     
-    -- Simple approach: check if button part exists and is accessible
-    local buttonPart = lockButton:FindFirstChild("ButtonPressPartOO") or lockButton:FindFirstChild("Part")
-    if not buttonPart then return false end
+    -- Get player's locker room number
+    local lockerRoomName = "LockerRoom" .. tostring(player.UserId % 8 + 1)
     
-    -- Check for proximity prompt text indicating locked state
-    local proximityPrompt = buttonPart:FindFirstChildOfClass("ProximityPrompt")
-    if proximityPrompt and proximityPrompt.ActionText then
-        local actionText = proximityPrompt.ActionText:lower()
-        if actionText:find("unlock") or actionText:find("locked") then
-            return true
-        end
+    -- Check if blockade exists (locked state)
+    local doorLockPath = workspace.Map and workspace.Map.Rooms and workspace.Map.Rooms[lockerRoomName] and workspace.Map.Rooms[lockerRoomName].DoorLock
+    if not doorLockPath then return false end
+    
+    local blockade = doorLockPath:FindFirstChild("Blockade")
+    if blockade and blockade.Parent then
+        -- Blockade exists and is parented = door is locked
+        return true
     end
     
-    -- If we can't determine lock state, assume unlocked to be safe
+    -- No blockade or not parented = door is unlocked
     return false
 end
 
@@ -1447,6 +1441,7 @@ end
 local AutoLock = {
     active = false,
     connection = nil,
+    eventConnection = nil,
     checkInterval = 2, -- Check every 2 seconds instead of 1
     timer = 0,
     lastLogTime = 0,
@@ -1462,34 +1457,51 @@ function AutoLock:toggle()
         self.connection:Disconnect()
         self.connection = nil
     end
+    
+    if self.eventConnection then
+        self.eventConnection:Disconnect()
+        self.eventConnection = nil
+    end
 
     if self.active then
-        print("Auto Lock system STARTED (Smart Mode)")
-        -- Initial lock attempt
+        print("Auto Lock system STARTED (Event-Based)")
+        
+        -- Initial lock attempt only if needed
         if not isDoorLocked() then
             lockDoor()
+            print("🔓 Initial lock attempt - door was unlocked")
         else
-            print("🔒 Door already locked - skipping initial lock")
+            print("🔒 Door already locked - skipping initial attempt")
         end
         
         self.timer = 0
         self.lastLogTime = 0
         self.successfulLocks = 0
-        self.lastLockCheck = 0
         
+        -- Listen for door lock state changes
+        pcall(function()
+            local replicatedStorage = game:GetService("ReplicatedStorage")
+            if replicatedStorage and replicatedStorage.Events and replicatedStorage.Events.DoorLockStateChanged then
+                self.eventConnection = replicatedStorage.Events.DoorLockStateChanged.OnClientEvent:Connect(function(...)
+                    -- When door state changes, check if we need to lock
+                    task.wait(0.1) -- Small delay to ensure state is updated
+                    if self.active and not isDoorLocked() then
+                        lockDoor()
+                        self.successfulLocks = self.successfulLocks + 1
+                        print("🔓 Door unlocked event detected - locked it (#" .. self.successfulLocks .. ")")
+                    end
+                end)
+            end
+        end)
+        
+        -- Backup timer check every 5 seconds (less frequent)
         self.connection = Services.RunService.Heartbeat:Connect(function(dt)
             self.timer = (self.timer or 0) + dt
-            if self.timer >= self.checkInterval then
-                if self.active then
-                    -- Only attempt to lock if door is not already locked
-                    if not isDoorLocked() then
-                        print("🔓 Door unlocked - attempting to lock...")
-                        local success = lockDoor()
-                        if success then
-                            self.successfulLocks = self.successfulLocks + 1
-                            print("✅ Door locked successfully")
-                        end
-                    end
+            if self.timer >= 5 then -- Check every 5 seconds as backup
+                if self.active and not isDoorLocked() then
+                    lockDoor()
+                    self.successfulLocks = self.successfulLocks + 1
+                    print("🔓 Backup check - door was unlocked, locked it (#" .. self.successfulLocks .. ")")
                 end
                 self.timer = 0
             end
@@ -3549,4 +3561,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hem")
+print("me")
