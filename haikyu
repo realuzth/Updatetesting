@@ -1048,6 +1048,58 @@ function AutoBuySystem:monitorCharacterPrompt(character)
     end)
 end
 
+-- Monitor for repurchases until character is gone
+function AutoBuySystem:monitorForRepurchase(character)
+    if not character or not character.Parent then return end
+    
+    local characterName = character.Name
+    print("🔍 Starting repurchase monitoring for: " .. characterName)
+    
+    -- Monitor in a separate coroutine
+    task.spawn(function()
+        while character.Parent and self.active do
+            -- Check if someone else bought the character
+            if self:isCharacterPurchasedByOther(character) then
+                print("⚡ REPURCHASE OPPORTUNITY: " .. characterName .. " was bought by someone else!")
+                
+                -- Wait a moment for respawn
+                task.wait(0.5)
+                
+                -- Look for the respawned character
+                local respawnedChar = self:findRespawnedCharacter(characterName)
+                if respawnedChar then
+                    print("🔄 Found respawned " .. characterName .. " - attempting instant repurchase")
+                    local success = attemptPurchase(LocalPlayer, respawnedChar, true)
+                    if success then
+                        print("✅ Instant repurchase successful: " .. characterName)
+                        self.purchasedCharacters[getCharacterUID(respawnedChar)] = tick()
+                        -- Continue monitoring the new instance
+                        character = respawnedChar
+                    end
+                end
+            end
+            
+            task.wait(0.2) -- Check every 0.2 seconds
+        end
+        
+        print("🛑 Stopped monitoring repurchases for: " .. characterName)
+    end)
+end
+
+-- Find a respawned character by name
+function AutoBuySystem:findRespawnedCharacter(characterName)
+    for _, char in pairs(workspace:GetChildren()) do
+        if char.Name == characterName and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+            -- Check if this is a new instance we haven't purchased
+            local uid = getCharacterUID(char)
+            if not self.purchasedCharacters[uid] then
+                return char
+            end
+        end
+    end
+    return nil
+end
+
 -- Cleanup proximity prompt monitoring
 function AutoBuySystem:cleanupPromptMonitoring()
     print("🧹 Cleaning up proximity prompt monitoring...")
@@ -1236,10 +1288,32 @@ function AutoBuySystem:mainLoop()
                 continue
             end
             
-            -- INSTANT REPURCHASE LOGIC: First purchase uses follow, subsequent are instant
-            if self.purchaseCount == 0 then
-                -- First purchase: use follow target
-                print("🚶 First purchase - using follow mode")
+            -- Check if this is a repurchase (we've bought this character name before)
+            local isRepurchase = false
+            for uid, timestamp in pairs(self.purchasedCharacters) do
+                if uid:match("^" .. target.Name .. "_") then
+                    isRepurchase = true
+                    break
+                end
+            end
+            
+            if isRepurchase then
+                -- This is a repurchase - use instant mode
+                print("⚡ REPURCHASE detected for " .. target.Name .. " - using instant mode")
+                local success = attemptPurchase(LocalPlayer, target, true) -- true = instant mode
+                if success then
+                    print("✅ Instant repurchase successful: " .. target.Name)
+                    self.purchasedCharacters[getCharacterUID(target)] = tick()
+                    
+                    -- Continue monitoring for more repurchases until character is gone
+                    self:monitorForRepurchase(target)
+                    task.wait(0.5)
+                else
+                    task.wait(0.2)
+                end
+            else
+                -- First time purchasing this character - use follow mode
+                print("🚶 First purchase of " .. target.Name .. " - using follow mode")
                 local result = self:followTarget(target)
                 
                 if result == true then
@@ -1247,18 +1321,6 @@ function AutoBuySystem:mainLoop()
                     self.purchasedCharacters[getCharacterUID(target)] = tick()
                 elseif result == "rebuy" then
                     print("🔄 INSTANT REBUY TRIGGERED during first purchase!")
-                    -- Continue to find new target
-                end
-            else
-                -- Subsequent purchases: instant mode - fire immediately without movement
-                print("⚡ Subsequent purchase - using instant mode (no movement)")
-                local success = attemptPurchase(LocalPlayer, target, true) -- true = instant mode
-                if success then
-                    print("✅ Instant purchase successful: " .. target.Name)
-                    self.purchasedCharacters[getCharacterUID(target)] = tick()
-                    task.wait(0.5) -- Brief pause before next scan
-                else
-                    task.wait(0.2) -- Quick retry if failed
                 end
             end
         else
@@ -3521,4 +3583,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hedwwdl")
+print("hel")
