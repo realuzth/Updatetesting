@@ -1,5 +1,6 @@
--- Locker Room Protection v1.0
--- Auto ragdoll trigger for locker room intruders
+
+-- Locker Room Protection v3.0
+-- Pure bat mechanics for locker room defense
 -- Created by uzth
 
 repeat task.wait() until game:IsLoaded()
@@ -8,128 +9,173 @@ local Services = {
     Players = game:GetService("Players"),
     RunService = game:GetService("RunService"),
     ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    Workspace = game:GetService("Workspace"),
-    CoreGui = game:GetService("CoreGui")
+    Workspace = game:GetService("Workspace")
 }
 
 local LocalPlayer = Services.Players.LocalPlayer
 
--- Executor compatibility functions
-local function getExecutorName()
-    local executors = {
-        "Synapse X", "Krnl", "Fluxus", "Oxygen U", "Script-Ware", 
-        "JJSploit", "Sentinel", "ProtoSmasher", "Sirhurt", "Exploit"
-    }
-    
-    for _, name in ipairs(executors) do
-        if _G[name:gsub(" ", ""):gsub("-", ""):lower()] then
-            return name
-        end
-    end
-    
-    -- Check for common executor globals
-    if syn then return "Synapse X"
-    elseif krnl then return "Krnl"
-    elseif fluxus then return "Fluxus"
-    elseif getgenv then return "Generic Executor"
-    else return "Unknown Executor"
-    end
-end
-
--- Enhanced executor support
 local function safeCall(func, ...)
     local success, result = pcall(func, ...)
     if not success then
-        warn("[LockerRoom] Error: " .. tostring(result))
-        return nil
+        return false
     end
-    return result
+    return true
 end
 
--- Ragdoll system references
-local RagdollSystem = {
-    baseballBat = nil,
-    ragdollRigging = nil,
-    playerRagdoll = nil,
-    triggerEvent = nil,
-    untriggerEvent = nil,
-    meleeEvent = nil,
-    ragdollScript = nil,
-    hitboxExtended = false,
-    originalHitboxes = {}
+-- Pure bat mechanics system
+local LockerDefense = {
+    bat = nil,
+    active = true,
+    cooldowns = {},
+    range = 30
 }
 
-function RagdollSystem:initialize()
-    print("[LockerRoom] Initializing ragdoll system...")
-    
-    -- Get local player's baseball bat
-    local playerWorkspace = Services.Workspace.Players:FindFirstChild(LocalPlayer.Name)
-    if playerWorkspace then
-        self.baseballBat = playerWorkspace:FindFirstChild("BaseballBat")
+function LockerDefense:findBat()
+    -- Find baseball bat
+    local playerFolder = Services.Workspace.Players:FindFirstChild(LocalPlayer.Name)
+    if playerFolder then
+        self.bat = playerFolder:FindFirstChild("BaseballBat")
     end
     
-    -- Setup hitbox extender
-    self:setupHitboxExtender()
+    if not self.bat then
+        for _, obj in pairs(Services.Workspace:GetDescendants()) do
+            if obj.Name == "BaseballBat" and obj.Parent and obj.Parent.Name == LocalPlayer.Name then
+                self.bat = obj
+                break
+            end
+        end
+    end
     
-    -- Get CoreGui ragdoll components
-    local coreGui = Services.CoreGui
-    if coreGui:FindFirstChild("RobloxGui") then
-        local robloxGui = coreGui.RobloxGui
-        
-        if robloxGui:FindFirstChild("Modules") then
-            local modules = robloxGui.Modules
-            if modules:FindFirstChild("Common") then
-                self.ragdollRigging = modules.Common:FindFirstChild("RagdollRigging")
+    return self.bat ~= nil
+end
+
+function LockerDefense:hitTarget(target)
+    if not target or not target.Character then return end
+    
+    local char = target.Character
+    local humanoid = char:FindFirstChild("Humanoid")
+    local rootPart = char:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    print("[LockerRoom] HITTING: " .. target.Name)
+    
+    -- Method 1: Spam all RemoteEvents with bat
+    for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
+        if event:IsA("RemoteEvent") then
+            spawn(function()
+                for i = 1, 3 do
+                    safeCall(function()
+                        event:FireServer(self.bat, rootPart)
+                        event:FireServer(rootPart, self.bat)
+                        event:FireServer(target, self.bat)
+                        event:FireServer(self.bat, target)
+                        event:FireServer({weapon = self.bat, target = rootPart})
+                        event:FireServer({hit = true, target = char, weapon = self.bat})
+                    end)
+                end
+            end)
+        end
+    end
+    
+    -- Method 2: Direct joint destruction
+    spawn(function()
+        for _, joint in pairs(char:GetDescendants()) do
+            if joint:IsA("Motor6D") or joint:IsA("Weld") or joint:IsA("WeldConstraint") then
+                safeCall(function() joint:Destroy() end)
             end
         end
         
-        if robloxGui:FindFirstChild("CoreScripts/PlayerRagdoll") then
-            self.playerRagdoll = robloxGui["CoreScripts/PlayerRagdoll"]
-        end
-    end
+        humanoid.PlatformStand = true
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        
+        local bodyVel = Instance.new("BodyVelocity")
+        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bodyVel.Velocity = Vector3.new(math.random(-50, 50), 30, math.random(-50, 50))
+        bodyVel.Parent = rootPart
+        
+        task.wait(0.5)
+        if bodyVel and bodyVel.Parent then bodyVel:Destroy() end
+    end)
     
-    -- Get ReplicatedStorage events
-    local repStorage = Services.ReplicatedStorage
-    if repStorage:FindFirstChild("Events") then
-        local events = repStorage.Events
-        self.triggerEvent = events:FindFirstChild("TriggerRagdoll")
-        self.untriggerEvent = events:FindFirstChild("UntriggerRagdoll")
-    end
-    
-    if repStorage:FindFirstChild("MeleeEvents") then
-        self.meleeEvent = repStorage.MeleeEvents:FindFirstChild("Ragdolled")
-    end
-    
-    -- Get StarterPlayer ragdoll script
-    local starterPlayer = game:GetService("StarterPlayer")
-    if starterPlayer:FindFirstChild("StarterPlayerScripts") then
-        self.ragdollScript = starterPlayer.StarterPlayerScripts:FindFirstChild("RagdollScript")
-    end
-    
-    print("[LockerRoom] Ragdoll system initialized")
-    print("[LockerRoom] Baseball Bat: " .. (self.baseballBat and "Found" or "Not Found"))
-    print("[LockerRoom] Trigger Event: " .. (self.triggerEvent and "Found" or "Not Found"))
-end
-
-function RagdollSystem:setupHitboxExtender()
-    print("[LockerRoom] Setting up hitbox extender...")
-    
-    if not LocalPlayer.Character then return end
-    
-    -- Extend baseball bat hitbox if it exists
-    if self.baseballBat then
-        safeCall(function()
-            -- Store original size
-            self.originalHitboxes[self.baseballBat] = self.baseballBat.Size
+    -- Method 3: Position bat and create collision
+    if self.bat then
+        spawn(function()
+            local originalPos = self.bat.CFrame
+            self.bat.CFrame = rootPart.CFrame
             
-            -- Extend hitbox dramatically
-            self.baseballBat.Size = Vector3.new(50, 50, 50)
-            self.baseballBat.Transparency = 1 -- Make invisible
-            self.baseballBat.CanCollide = false
+            local hitPart = Instance.new("Part")
+            hitPart.Size = Vector3.new(2, 2, 2)
+            hitPart.Transparency = 1
+            hitPart.CanCollide = false
+            hitPart.Parent = char
+            hitPart.CFrame = rootPart.CFrame
             
-            print("[LockerRoom] Baseball bat hitbox extended to 50x50x50")
+            -- Trigger bat touch
+            if self.bat.Touched then
+                for i = 1, 5 do
+                    self.bat.Touched:Fire(hitPart)
+                    task.wait(0.02)
+                end
+            end
+            
+            task.wait(0.1)
+            self.bat.CFrame = originalPos
+            hitPart:Destroy()
         end)
     end
+end
+
+function LockerDefense:monitor()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local myPos = LocalPlayer.Character.HumanoidRootPart.Position
+    
+    for _, player in pairs(Services.Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local theirPos = player.Character.HumanoidRootPart.Position
+            local distance = (theirPos - myPos).Magnitude
+            
+            if distance <= self.range then
+                local now = tick()
+                if not self.cooldowns[player.UserId] or (now - self.cooldowns[player.UserId]) > 1 then
+                    self.cooldowns[player.UserId] = now
+                    print("[LockerRoom] INTRUDER: " .. player.Name .. " (" .. math.floor(distance) .. " studs)")
+                    self:hitTarget(player)
+                end
+            end
+        end
+    end
+end
+
+-- Initialize system
+local function start()
+    print("[LockerRoom] Starting Locker Defense System...")
+    
+    if LockerDefense:findBat() then
+        print("[LockerRoom] Bat found: " .. LockerDefense.bat:GetFullName())
+        
+        -- Extend bat hitbox
+        LockerDefense.bat.Size = Vector3.new(15, 15, 15)
+        LockerDefense.bat.Transparency = 0.5
+        LockerDefense.bat.CanCollide = false
+    else
+        print("[LockerRoom] No bat found - using direct methods")
+    end
+    
+    print("[LockerRoom] Protection range: " .. LockerDefense.range .. " studs")
+    print("[LockerRoom] System active!")
+    
+    -- Start monitoring
+    Services.RunService.Heartbeat:Connect(function()
+        if LockerDefense.active then
+            LockerDefense:monitor()
+        end
+    end)
+end
+
+task.wait(1)
+start()
     
     -- Create invisible hit parts around player
     self:createInvisibleHitParts()
@@ -681,4 +727,3 @@ end
 -- Start the system
 task.wait(2)
 initialize()
-print("test1")
