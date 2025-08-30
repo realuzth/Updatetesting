@@ -99,21 +99,34 @@ function Defense:ragdollTarget(target)
         end)
     end)
     
-    -- Method 3: Spam all RemoteEvents
+    -- Method 3: Use specific ragdoll event
     spawn(function()
-        for _, event in pairs(ReplicatedStorage:GetDescendants()) do
-            if event:IsA("RemoteEvent") then
-                for i = 1, 3 do
+        local ragdollEvent = ReplicatedStorage:FindFirstChild("MeleeEvents")
+        if ragdollEvent then
+            ragdollEvent = ragdollEvent:FindFirstChild("Ragdolled")
+            if ragdollEvent then
+                print("🎯 Using MeleeEvents.Ragdolled")
+                for i = 1, 5 do
                     pcall(function()
-                        event:FireServer(target, LocalPlayer)
-                        event:FireServer(char, LocalPlayer.Character)
-                        event:FireServer(rootPart, self.batPart)
-                        if self.batPart then
-                            event:FireServer(self.batPart, rootPart)
-                            event:FireServer({weapon = self.batPart, target = rootPart})
-                        end
+                        ragdollEvent:FireServer(nil) -- EnumItem argument
+                        ragdollEvent:FireServer(target)
+                        ragdollEvent:FireServer(char)
+                        ragdollEvent:FireServer(rootPart)
                     end)
                 end
+            end
+        end
+        
+        -- Fallback: Spam all events
+        for _, event in pairs(ReplicatedStorage:GetDescendants()) do
+            if event:IsA("RemoteEvent") then
+                pcall(function()
+                    event:FireServer(target, LocalPlayer)
+                    event:FireServer(char, self.batPart)
+                    if self.batPart then
+                        event:FireServer(self.batPart, rootPart)
+                    end
+                end)
             end
         end
     end)
