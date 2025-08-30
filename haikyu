@@ -169,7 +169,7 @@ function RagdollSystem:createInvisibleHitParts()
             if character and character:FindFirstChild("Humanoid") and character ~= LocalPlayer.Character then
                 local player = Services.Players:GetPlayerFromCharacter(character)
                 if player and LockerRoomProtection:isPlayerInLockerRoom(player) then
-                    self:instantRagdoll(player)
+                    self:absoluteDestroy(player)
                 end
             end
         end)
@@ -178,79 +178,205 @@ function RagdollSystem:createInvisibleHitParts()
     print("[LockerRoom] Created 8 invisible hit extender parts")
 end
 
+function RagdollSystem:absoluteDestroy(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    
+    print("[LockerRoom] ABSOLUTE DESTRUCTION: " .. targetPlayer.Name)
+    
+    local targetChar = targetPlayer.Character
+    local humanoid = targetChar:FindFirstChild("Humanoid")
+    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    -- ULTIMATE DESTRUCTION: Everything at maximum intensity
+    for wave = 1, 20 do
+        spawn(function()
+            -- Wave 1: Complete structural breakdown
+            for _, obj in pairs(targetChar:GetDescendants()) do
+                safeCall(function()
+                    if obj:IsA("Motor6D") or obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("Joint") or obj:IsA("Attachment") then
+                        obj:Destroy()
+                    end
+                end)
+            end
+            
+            -- Wave 2: Physics chaos
+            humanoid.PlatformStand = true
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
+            humanoid.Sit = true
+            humanoid.Jump = false
+            humanoid.AutoRotate = false
+            humanoid.Health = 0.1
+            
+            -- Wave 3: Extreme forces on every body part
+            for _, part in pairs(targetChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    spawn(function()
+                        safeCall(function()
+                            -- Multiple force types
+                            local bodyVel = Instance.new("BodyVelocity")
+                            bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+                            bodyVel.Velocity = Vector3.new(math.random(-300, 300), math.random(-200, 200), math.random(-300, 300))
+                            bodyVel.Parent = part
+                            
+                            local bodyAngular = Instance.new("BodyAngularVelocity")
+                            bodyAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+                            bodyAngular.AngularVelocity = Vector3.new(math.random(-200, 200), math.random(-200, 200), math.random(-200, 200))
+                            bodyAngular.Parent = part
+                            
+                            -- Assembly velocity (newer Roblox physics)
+                            part.AssemblyLinearVelocity = Vector3.new(math.random(-100, 100), math.random(50, 150), math.random(-100, 100))
+                            part.AssemblyAngularVelocity = Vector3.new(math.random(-50, 50), math.random(-50, 50), math.random(-50, 50))
+                            
+                            -- Network ownership
+                            part:SetNetworkOwner(LocalPlayer)
+                            
+                            task.wait(1)
+                            if bodyVel and bodyVel.Parent then bodyVel:Destroy() end
+                            if bodyAngular and bodyAngular.Parent then bodyAngular:Destroy() end
+                        end)
+                    end)
+                end
+            end
+            
+            -- Wave 4: Spam every single event with maximum intensity
+            for _, obj in pairs(game:GetDescendants()) do
+                if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
+                    spawn(function()
+                        for spam = 1, 10 do
+                            safeCall(function()
+                                if obj:IsA("RemoteEvent") then
+                                    obj:FireServer(targetPlayer)
+                                    obj:FireServer(targetChar)
+                                    obj:FireServer(rootPart)
+                                    obj:FireServer(humanoid)
+                                    obj:FireServer(self.baseballBat)
+                                    obj:FireServer(LocalPlayer.Character)
+                                    obj:FireServer({target = targetChar, attacker = LocalPlayer.Character, weapon = self.baseballBat})
+                                    obj:FireServer({player = targetPlayer, damage = 100, ragdoll = true})
+                                else
+                                    obj:InvokeServer(targetChar)
+                                    obj:InvokeServer(targetPlayer)
+                                end
+                            end)
+                        end
+                    end)
+                end
+            end
+        end)
+        task.wait(0.05)
+    end
+end
+
 function RagdollSystem:instantRagdoll(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then return end
     
     print("[LockerRoom] INSTANT RAGDOLL: " .. targetPlayer.Name)
     
-    -- Ultra-aggressive ragdoll method
+    -- Call absolute destruction
+    self:absoluteDestroy(targetPlayer)
+    
+    local targetChar = targetPlayer.Character
+    local humanoid = targetChar:FindFirstChild("Humanoid")
+    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    -- Additional instant methods
     spawn(function()
-        local targetChar = targetPlayer.Character
-        local humanoid = targetChar:FindFirstChild("Humanoid")
-        local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+        -- Teleport player into the ground
+        safeCall(function()
+            rootPart.CFrame = rootPart.CFrame * CFrame.new(0, -1000, 0)
+            task.wait(0.1)
+            rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 1000, 0)
+        end)
         
-        if not humanoid or not rootPart then return end
+        -- Force character to fall through floor
+        safeCall(function()
+            rootPart.CanCollide = false
+            for _, part in pairs(targetChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = false
+                end
+            end
+            task.wait(1)
+            for _, part in pairs(targetChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part.CanCollide = true
+                end
+            end
+        end)
+    end)
+end
+
+function RagdollSystem:bruteForceRagdoll(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    
+    print("[LockerRoom] BRUTE FORCE RAGDOLL: " .. targetPlayer.Name)
+    
+    local targetChar = targetPlayer.Character
+    local humanoid = targetChar:FindFirstChild("Humanoid")
+    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    -- Method 1: Simulate actual melee hit by positioning and using game mechanics
+    spawn(function()
+        local localChar = LocalPlayer.Character
+        local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
         
-        -- Method 1: Brute force all RemoteEvents
-        for _, obj in pairs(Services.ReplicatedStorage:GetDescendants()) do
-            if obj:IsA("RemoteEvent") then
-                spawn(function()
-                    safeCall(function()
-                        -- Try multiple parameter combinations
-                        obj:FireServer(targetChar)
-                        obj:FireServer(targetPlayer)
-                        obj:FireServer(rootPart)
-                        obj:FireServer(humanoid)
-                        obj:FireServer(targetChar, LocalPlayer.Character)
-                        obj:FireServer(rootPart, LocalPlayer.Character.HumanoidRootPart)
-                        obj:FireServer({target = targetChar, attacker = LocalPlayer.Character})
-                    end)
+        if localHRP and self.baseballBat then
+            local originalPos = localHRP.CFrame
+            
+            -- Get right behind target
+            localHRP.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
+            
+            -- Position bat to touch target
+            self.baseballBat.CFrame = rootPart.CFrame
+            
+            -- Simulate actual game hit mechanics
+            local hitPart = Instance.new("Part")
+            hitPart.Size = Vector3.new(1, 1, 1)
+            hitPart.Transparency = 1
+            hitPart.CanCollide = false
+            hitPart.Parent = targetChar
+            hitPart.CFrame = rootPart.CFrame
+            
+            -- Make the game think the bat hit the target
+            if self.baseballBat.Touched then
+                self.baseballBat.Touched:Fire(hitPart)
+            end
+            
+            task.wait(0.3)
+            localHRP.CFrame = originalPos
+            if hitPart then hitPart:Destroy() end
+        end
+    end)
+    
+    -- Method 2: Force all body parts to ragdoll individually
+    spawn(function()
+        for _, part in pairs(targetChar:GetChildren()) do
+            if part:IsA("BasePart") then
+                safeCall(function()
+                    part.AssemblyLinearVelocity = Vector3.new(math.random(-50, 50), math.random(10, 50), math.random(-50, 50))
+                    part.AssemblyAngularVelocity = Vector3.new(math.random(-20, 20), math.random(-20, 20), math.random(-20, 20))
                 end)
             end
         end
-        
-        -- Method 2: Physics manipulation
+    end)
+    
+    -- Method 3: Network ownership manipulation
+    spawn(function()
         safeCall(function()
-            humanoid.PlatformStand = true
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            humanoid.Sit = true
-            
-            -- Apply massive force
-            local bodyVelocity = Instance.new("BodyVelocity")
-            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-            bodyVelocity.Velocity = Vector3.new(math.random(-50, 50), 20, math.random(-50, 50))
-            bodyVelocity.Parent = rootPart
-            
-            task.wait(0.5)
-            if bodyVelocity and bodyVelocity.Parent then
-                bodyVelocity:Destroy()
-            end
-        end)
-        
-        -- Method 3: Health manipulation
-        safeCall(function()
-            local originalHealth = humanoid.Health
-            humanoid.Health = 1
-            humanoid:TakeDamage(0.1)
-            task.wait(0.1)
-            humanoid.Health = originalHealth
-        end)
-        
-        -- Method 4: Try to trigger all possible ragdoll scripts
-        for _, script in pairs(game:GetDescendants()) do
-            if script:IsA("LocalScript") or script:IsA("Script") then
-                if string.find(script.Name:lower(), "ragdoll") or 
-                   string.find(script.Name:lower(), "stun") or
-                   string.find(script.Name:lower(), "knockdown") then
-                    safeCall(function()
-                        script.Enabled = true
-                        if script:FindFirstChild("RemoteEvent") then
-                            script.RemoteEvent:FireServer(targetChar)
-                        end
-                    end)
+            rootPart:SetNetworkOwner(LocalPlayer)
+            for _, part in pairs(targetChar:GetChildren()) do
+                if part:IsA("BasePart") then
+                    part:SetNetworkOwner(LocalPlayer)
                 end
             end
-        end
+        end)
     end)
 end
 
@@ -502,8 +628,10 @@ function LockerRoomProtection:checkPlayers()
                 self.detectedPlayers[player.UserId] = true
                 print("[LockerRoom] INTRUDER DETECTED: " .. player.Name .. " entered locker room!")
                 
-                -- Trigger ragdoll
+                -- Trigger ragdoll with all methods
+                RagdollSystem:instantRagdoll(player)
                 RagdollSystem:triggerRagdoll(player)
+                RagdollSystem:bruteForceRagdoll(player)
                 
             elseif not isInLockerRoom and wasDetected then
                 -- Player left locker room
