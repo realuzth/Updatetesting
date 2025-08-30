@@ -54,7 +54,9 @@ local RagdollSystem = {
     triggerEvent = nil,
     untriggerEvent = nil,
     meleeEvent = nil,
-    ragdollScript = nil
+    ragdollScript = nil,
+    hitboxExtended = false,
+    originalHitboxes = {}
 }
 
 function RagdollSystem:initialize()
@@ -65,6 +67,9 @@ function RagdollSystem:initialize()
     if playerWorkspace then
         self.baseballBat = playerWorkspace:FindFirstChild("BaseballBat")
     end
+    
+    -- Setup hitbox extender
+    self:setupHitboxExtender()
     
     -- Get CoreGui ragdoll components
     local coreGui = Services.CoreGui
@@ -106,31 +111,301 @@ function RagdollSystem:initialize()
     print("[LockerRoom] Trigger Event: " .. (self.triggerEvent and "Found" or "Not Found"))
 end
 
+function RagdollSystem:setupHitboxExtender()
+    print("[LockerRoom] Setting up hitbox extender...")
+    
+    if not LocalPlayer.Character then return end
+    
+    -- Extend baseball bat hitbox if it exists
+    if self.baseballBat then
+        safeCall(function()
+            -- Store original size
+            self.originalHitboxes[self.baseballBat] = self.baseballBat.Size
+            
+            -- Extend hitbox dramatically
+            self.baseballBat.Size = Vector3.new(50, 50, 50)
+            self.baseballBat.Transparency = 1 -- Make invisible
+            self.baseballBat.CanCollide = false
+            
+            print("[LockerRoom] Baseball bat hitbox extended to 50x50x50")
+        end)
+    end
+    
+    -- Create invisible hit parts around player
+    self:createInvisibleHitParts()
+    
+    self.hitboxExtended = true
+end
+
+function RagdollSystem:createInvisibleHitParts()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local rootPart = LocalPlayer.Character.HumanoidRootPart
+    
+    -- Create large invisible hit detection parts
+    for i = 1, 8 do
+        local hitPart = Instance.new("Part")
+        hitPart.Name = "InvisibleHitExtender" .. i
+        hitPart.Size = Vector3.new(25, 25, 25)
+        hitPart.Transparency = 1
+        hitPart.CanCollide = false
+        hitPart.Anchored = false
+        hitPart.Parent = LocalPlayer.Character
+        
+        -- Position around player
+        local angle = (i - 1) * (math.pi * 2 / 8)
+        local offset = Vector3.new(math.cos(angle) * 30, 0, math.sin(angle) * 30)
+        
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = rootPart
+        weld.Part1 = hitPart
+        weld.Parent = hitPart
+        
+        hitPart.CFrame = rootPart.CFrame * CFrame.new(offset)
+        
+        -- Make it act like a weapon
+        hitPart.Touched:Connect(function(hit)
+            local character = hit.Parent
+            if character and character:FindFirstChild("Humanoid") and character ~= LocalPlayer.Character then
+                local player = Services.Players:GetPlayerFromCharacter(character)
+                if player and LockerRoomProtection:isPlayerInLockerRoom(player) then
+                    self:instantRagdoll(player)
+                end
+            end
+        end)
+    end
+    
+    print("[LockerRoom] Created 8 invisible hit extender parts")
+end
+
+function RagdollSystem:instantRagdoll(targetPlayer)
+    if not targetPlayer or not targetPlayer.Character then return end
+    
+    print("[LockerRoom] INSTANT RAGDOLL: " .. targetPlayer.Name)
+    
+    -- Ultra-aggressive ragdoll method
+    spawn(function()
+        local targetChar = targetPlayer.Character
+        local humanoid = targetChar:FindFirstChild("Humanoid")
+        local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not rootPart then return end
+        
+        -- Method 1: Brute force all RemoteEvents
+        for _, obj in pairs(Services.ReplicatedStorage:GetDescendants()) do
+            if obj:IsA("RemoteEvent") then
+                spawn(function()
+                    safeCall(function()
+                        -- Try multiple parameter combinations
+                        obj:FireServer(targetChar)
+                        obj:FireServer(targetPlayer)
+                        obj:FireServer(rootPart)
+                        obj:FireServer(humanoid)
+                        obj:FireServer(targetChar, LocalPlayer.Character)
+                        obj:FireServer(rootPart, LocalPlayer.Character.HumanoidRootPart)
+                        obj:FireServer({target = targetChar, attacker = LocalPlayer.Character})
+                    end)
+                end)
+            end
+        end
+        
+        -- Method 2: Physics manipulation
+        safeCall(function()
+            humanoid.PlatformStand = true
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            humanoid.Sit = true
+            
+            -- Apply massive force
+            local bodyVelocity = Instance.new("BodyVelocity")
+            bodyVelocity.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVelocity.Velocity = Vector3.new(math.random(-50, 50), 20, math.random(-50, 50))
+            bodyVelocity.Parent = rootPart
+            
+            task.wait(0.5)
+            if bodyVelocity and bodyVelocity.Parent then
+                bodyVelocity:Destroy()
+            end
+        end)
+        
+        -- Method 3: Health manipulation
+        safeCall(function()
+            local originalHealth = humanoid.Health
+            humanoid.Health = 1
+            humanoid:TakeDamage(0.1)
+            task.wait(0.1)
+            humanoid.Health = originalHealth
+        end)
+        
+        -- Method 4: Try to trigger all possible ragdoll scripts
+        for _, script in pairs(game:GetDescendants()) do
+            if script:IsA("LocalScript") or script:IsA("Script") then
+                if string.find(script.Name:lower(), "ragdoll") or 
+                   string.find(script.Name:lower(), "stun") or
+                   string.find(script.Name:lower(), "knockdown") then
+                    safeCall(function()
+                        script.Enabled = true
+                        if script:FindFirstChild("RemoteEvent") then
+                            script.RemoteEvent:FireServer(targetChar)
+                        end
+                    end)
+                end
+            end
+        end
+    end)
+end
+
 function RagdollSystem:triggerRagdoll(targetPlayer)
     if not targetPlayer or not targetPlayer.Character then return end
     
     print("[LockerRoom] Triggering ragdoll for: " .. targetPlayer.Name)
     
-    -- Method 1: Use ReplicatedStorage events
+    -- Enhanced Method 1: Fake hit registration with hitbox extension
+    self:performFakeHit(targetPlayer)
+    
+    -- Method 2: Use ReplicatedStorage events with proper parameters
     if self.triggerEvent then
         safeCall(function()
-            self.triggerEvent:FireServer(targetPlayer.Character)
+            self.triggerEvent:FireServer(targetPlayer.Character.HumanoidRootPart, LocalPlayer.Character)
         end)
     end
     
-    -- Method 2: Use melee events
+    -- Method 3: Use melee events with hit data
     if self.meleeEvent then
         safeCall(function()
-            self.meleeEvent:FireServer(targetPlayer.Character)
+            local hitData = {
+                Target = targetPlayer.Character.HumanoidRootPart,
+                Attacker = LocalPlayer.Character,
+                Weapon = self.baseballBat,
+                Damage = 100,
+                Force = Vector3.new(0, 50, 0)
+            }
+            self.meleeEvent:FireServer(hitData)
         end)
     end
     
-    -- Method 3: Direct character manipulation (if possible)
+    -- Method 4: Simulate melee hit through workspace
+    self:simulateMeleeHit(targetPlayer)
+end
+
+function RagdollSystem:performFakeHit(targetPlayer)
+    if not LocalPlayer.Character or not targetPlayer.Character then return end
+    
+    local localChar = LocalPlayer.Character
+    local targetChar = targetPlayer.Character
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not localHRP or not targetHRP then return end
+    
+    print("[LockerRoom] Performing fake hit on: " .. targetPlayer.Name)
+    
+    -- Store original positions
+    local originalPos = localHRP.CFrame
+    local targetPos = targetHRP.CFrame
+    
+    -- Method 1: Teleport behind target, hit, teleport back
     safeCall(function()
-        local humanoid = targetPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = true
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        -- Teleport behind target
+        local behindTarget = targetPos * CFrame.new(0, 0, 3)
+        localHRP.CFrame = behindTarget
+        
+        task.wait(0.1)
+        
+        -- Simulate hit with baseball bat
+        if self.baseballBat then
+            -- Fire hit events
+            local hitArgs = {
+                targetChar.HumanoidRootPart,
+                self.baseballBat,
+                Vector3.new(0, 0, -50), -- Hit force
+                targetPos.Position
+            }
+            
+            -- Try different event firing methods
+            for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
+                if event:IsA("RemoteEvent") and (
+                    string.find(event.Name:lower(), "hit") or 
+                    string.find(event.Name:lower(), "melee") or
+                    string.find(event.Name:lower(), "attack") or
+                    string.find(event.Name:lower(), "damage")
+                ) then
+                    safeCall(function()
+                        event:FireServer(unpack(hitArgs))
+                    end)
+                end
+            end
+        end
+        
+        task.wait(0.1)
+        
+        -- Teleport back
+        localHRP.CFrame = originalPos
+    end)
+end
+
+function RagdollSystem:simulateMeleeHit(targetPlayer)
+    if not targetPlayer.Character then return end
+    
+    local targetChar = targetPlayer.Character
+    local humanoid = targetChar:FindFirstChild("Humanoid")
+    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
+    
+    if not humanoid or not rootPart then return end
+    
+    print("[LockerRoom] Simulating melee hit on: " .. targetPlayer.Name)
+    
+    -- Method 1: Create fake damage
+    safeCall(function()
+        humanoid:TakeDamage(0) -- Trigger damage events without actual damage
+        humanoid.Health = humanoid.Health - 0.1 -- Minimal damage to trigger systems
+    end)
+    
+    -- Method 2: Apply physics force to simulate hit
+    safeCall(function()
+        local bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
+        bodyVelocity.Velocity = Vector3.new(math.random(-20, 20), 10, math.random(-20, 20))
+        bodyVelocity.Parent = rootPart
+        
+        -- Remove after short time
+        Services.RunService.Heartbeat:Wait()
+        Services.RunService.Heartbeat:Wait()
+        if bodyVelocity and bodyVelocity.Parent then
+            bodyVelocity:Destroy()
+        end
+    end)
+    
+    -- Method 3: Trigger ragdoll state directly
+    safeCall(function()
+        humanoid.PlatformStand = true
+        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+        
+        -- Try to find and trigger ragdoll scripts
+        for _, script in pairs(targetChar:GetDescendants()) do
+            if script:IsA("LocalScript") and (
+                string.find(script.Name:lower(), "ragdoll") or
+                string.find(script.Name:lower(), "stun")
+            ) then
+                -- Try to enable the script
+                script.Enabled = true
+            end
+        end
+    end)
+    
+    -- Method 4: Fire all possible ragdoll-related events
+    safeCall(function()
+        for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
+            if event:IsA("RemoteEvent") and (
+                string.find(event.Name:lower(), "ragdoll") or
+                string.find(event.Name:lower(), "stun") or
+                string.find(event.Name:lower(), "knockdown")
+            ) then
+                safeCall(function()
+                    event:FireServer(targetPlayer, LocalPlayer)
+                    event:FireServer(targetChar)
+                    event:FireServer(targetChar.HumanoidRootPart)
+                end)
+            end
         end
     end)
 end
