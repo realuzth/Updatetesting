@@ -1,55 +1,54 @@
-
--- Locker Room Protection v3.0
--- Pure bat mechanics for locker room defense
+-- Locker Room Protection v3.0 - Clean Version
+-- Simple bat-based defense system
 -- Created by uzth
 
+print("=== LOCKER ROOM PROTECTION STARTING ===")
+
 repeat task.wait() until game:IsLoaded()
+print("Game loaded successfully!")
 
-local Services = {
-    Players = game:GetService("Players"),
-    RunService = game:GetService("RunService"),
-    ReplicatedStorage = game:GetService("ReplicatedStorage"),
-    Workspace = game:GetService("Workspace")
-}
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
 
-local LocalPlayer = Services.Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer
+print("Local player: " .. LocalPlayer.Name)
 
-local function safeCall(func, ...)
-    local success, result = pcall(func, ...)
-    if not success then
-        return false
-    end
-    return true
-end
-
--- Pure bat mechanics system
-local LockerDefense = {
-    bat = nil,
+-- Defense system
+local Defense = {
     active = true,
     cooldowns = {},
-    range = 30
+    range = 25,
+    bat = nil
 }
 
-function LockerDefense:findBat()
-    -- Find baseball bat
-    local playerFolder = Services.Workspace.Players:FindFirstChild(LocalPlayer.Name)
-    if playerFolder then
-        self.bat = playerFolder:FindFirstChild("BaseballBat")
-    end
+function Defense:findBat()
+    print("Searching for baseball bat...")
     
-    if not self.bat then
-        for _, obj in pairs(Services.Workspace:GetDescendants()) do
-            if obj.Name == "BaseballBat" and obj.Parent and obj.Parent.Name == LocalPlayer.Name then
-                self.bat = obj
-                break
-            end
+    -- Search in player folder first
+    local playerFolder = Workspace.Players:FindFirstChild(LocalPlayer.Name)
+    if playerFolder then
+        local bat = playerFolder:FindFirstChild("BaseballBat")
+        if bat then
+            print("✓ Found bat in player folder: " .. bat:GetFullName())
+            return bat
         end
     end
     
-    return self.bat ~= nil
+    -- Search everywhere in workspace
+    for _, obj in pairs(Workspace:GetDescendants()) do
+        if obj.Name == "BaseballBat" and obj.Parent and obj.Parent.Name == LocalPlayer.Name then
+            print("✓ Found bat in workspace: " .. obj:GetFullName())
+            return obj
+        end
+    end
+    
+    print("✗ No baseball bat found")
+    return nil
 end
 
-function LockerDefense:hitTarget(target)
+function Defense:ragdollTarget(target)
     if not target or not target.Character then return end
     
     local char = target.Character
@@ -58,90 +57,72 @@ function LockerDefense:hitTarget(target)
     
     if not humanoid or not rootPart then return end
     
-    print("[LockerRoom] HITTING: " .. target.Name)
+    print("🔥 RAGDOLLING: " .. target.Name)
     
-    -- Method 1: Spam all RemoteEvents with bat
-    for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
-        if event:IsA("RemoteEvent") then
-            spawn(function()
-                for i = 1, 3 do
-                    safeCall(function()
-                        event:FireServer(self.bat, rootPart)
-                        event:FireServer(rootPart, self.bat)
-                        event:FireServer(target, self.bat)
-                        event:FireServer(self.bat, target)
-                        event:FireServer({weapon = self.bat, target = rootPart})
-                        event:FireServer({hit = true, target = char, weapon = self.bat})
-                    end)
-                end
-            end)
-        end
-    end
-    
-    -- Method 2: Direct joint destruction
+    -- Method 1: Destroy all joints to force ragdoll
     spawn(function()
         for _, joint in pairs(char:GetDescendants()) do
             if joint:IsA("Motor6D") or joint:IsA("Weld") or joint:IsA("WeldConstraint") then
-                safeCall(function() joint:Destroy() end)
+                pcall(function() joint:Destroy() end)
             end
         end
-        
-        humanoid.PlatformStand = true
-        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        
-        local bodyVel = Instance.new("BodyVelocity")
-        bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-        bodyVel.Velocity = Vector3.new(math.random(-50, 50), 30, math.random(-50, 50))
-        bodyVel.Parent = rootPart
-        
-        task.wait(0.5)
-        if bodyVel and bodyVel.Parent then bodyVel:Destroy() end
     end)
     
-    -- Method 3: Position bat and create collision
-    if self.bat then
-        spawn(function()
-            local originalPos = self.bat.CFrame
-            self.bat.CFrame = rootPart.CFrame
+    -- Method 2: Force physics state
+    spawn(function()
+        pcall(function()
+            humanoid.PlatformStand = true
+            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+            humanoid.Sit = true
             
-            local hitPart = Instance.new("Part")
-            hitPart.Size = Vector3.new(2, 2, 2)
-            hitPart.Transparency = 1
-            hitPart.CanCollide = false
-            hitPart.Parent = char
-            hitPart.CFrame = rootPart.CFrame
+            -- Apply force
+            local bodyVel = Instance.new("BodyVelocity")
+            bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+            bodyVel.Velocity = Vector3.new(math.random(-50, 50), 30, math.random(-50, 50))
+            bodyVel.Parent = rootPart
             
-            -- Trigger bat touch
-            if self.bat.Touched then
-                for i = 1, 5 do
-                    self.bat.Touched:Fire(hitPart)
-                    task.wait(0.02)
+            game:GetService("Debris"):AddItem(bodyVel, 1)
+        end)
+    end)
+    
+    -- Method 3: Spam all RemoteEvents
+    spawn(function()
+        for _, event in pairs(ReplicatedStorage:GetDescendants()) do
+            if event:IsA("RemoteEvent") then
+                for i = 1, 3 do
+                    pcall(function()
+                        event:FireServer(target, LocalPlayer)
+                        event:FireServer(char, LocalPlayer.Character)
+                        event:FireServer(rootPart, self.bat)
+                        if self.bat then
+                            event:FireServer(self.bat, rootPart)
+                            event:FireServer({weapon = self.bat, target = rootPart})
+                        end
+                    end)
                 end
             end
-            
-            task.wait(0.1)
-            self.bat.CFrame = originalPos
-            hitPart:Destroy()
-        end)
-    end
+        end
+    end)
 end
 
-function LockerDefense:monitor()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
+function Defense:checkForIntruders()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then 
+        return 
+    end
     
     local myPos = LocalPlayer.Character.HumanoidRootPart.Position
     
-    for _, player in pairs(Services.Players:GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local theirPos = player.Character.HumanoidRootPart.Position
             local distance = (theirPos - myPos).Magnitude
             
             if distance <= self.range then
                 local now = tick()
-                if not self.cooldowns[player.UserId] or (now - self.cooldowns[player.UserId]) > 1 then
+                if not self.cooldowns[player.UserId] or (now - self.cooldowns[player.UserId]) > 2 then
                     self.cooldowns[player.UserId] = now
-                    print("[LockerRoom] INTRUDER: " .. player.Name .. " (" .. math.floor(distance) .. " studs)")
-                    self:hitTarget(player)
+                    print("⚠️  INTRUDER DETECTED: " .. player.Name .. " (" .. math.floor(distance) .. " studs away)")
+                    self:ragdollTarget(player)
                 end
             end
         end
@@ -149,581 +130,29 @@ function LockerDefense:monitor()
 end
 
 -- Initialize system
-local function start()
-    print("[LockerRoom] Starting Locker Defense System...")
-    
-    if LockerDefense:findBat() then
-        print("[LockerRoom] Bat found: " .. LockerDefense.bat:GetFullName())
-        
-        -- Extend bat hitbox
-        LockerDefense.bat.Size = Vector3.new(15, 15, 15)
-        LockerDefense.bat.Transparency = 0.5
-        LockerDefense.bat.CanCollide = false
-    else
-        print("[LockerRoom] No bat found - using direct methods")
+print("🔧 Setting up defense system...")
+
+Defense.bat = Defense:findBat()
+if Defense.bat then
+    print("🔨 Extending bat hitbox...")
+    Defense.bat.Size = Vector3.new(20, 20, 20)
+    Defense.bat.Transparency = 0.7
+    Defense.bat.CanCollide = false
+    print("✓ Bat hitbox extended to 20x20x20")
+else
+    print("⚠️  No bat found - using direct ragdoll methods only")
+end
+
+print("📏 Protection range: " .. Defense.range .. " studs")
+print("🔄 Starting monitoring loop...")
+
+-- Main monitoring loop
+RunService.Heartbeat:Connect(function()
+    if Defense.active then
+        Defense:checkForIntruders()
     end
-    
-    print("[LockerRoom] Protection range: " .. LockerDefense.range .. " studs")
-    print("[LockerRoom] System active!")
-    
-    -- Start monitoring
-    Services.RunService.Heartbeat:Connect(function()
-        if LockerDefense.active then
-            LockerDefense:monitor()
-        end
-    end)
-end
+end)
 
-task.wait(1)
-start()
-    
-    -- Create invisible hit parts around player
-    self:createInvisibleHitParts()
-    
-    self.hitboxExtended = true
-end
-
-function RagdollSystem:createInvisibleHitParts()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local rootPart = LocalPlayer.Character.HumanoidRootPart
-    
-    -- Create large invisible hit detection parts
-    for i = 1, 8 do
-        local hitPart = Instance.new("Part")
-        hitPart.Name = "InvisibleHitExtender" .. i
-        hitPart.Size = Vector3.new(25, 25, 25)
-        hitPart.Transparency = 1
-        hitPart.CanCollide = false
-        hitPart.Anchored = false
-        hitPart.Parent = LocalPlayer.Character
-        
-        -- Position around player
-        local angle = (i - 1) * (math.pi * 2 / 8)
-        local offset = Vector3.new(math.cos(angle) * 30, 0, math.sin(angle) * 30)
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = rootPart
-        weld.Part1 = hitPart
-        weld.Parent = hitPart
-        
-        hitPart.CFrame = rootPart.CFrame * CFrame.new(offset)
-        
-        -- Make it act like a weapon
-        hitPart.Touched:Connect(function(hit)
-            local character = hit.Parent
-            if character and character:FindFirstChild("Humanoid") and character ~= LocalPlayer.Character then
-                local player = Services.Players:GetPlayerFromCharacter(character)
-                if player and LockerRoomProtection:isPlayerInLockerRoom(player) then
-                    self:absoluteDestroy(player)
-                end
-            end
-        end)
-    end
-    
-    print("[LockerRoom] Created 8 invisible hit extender parts")
-end
-
-function RagdollSystem:absoluteDestroy(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    
-    print("[LockerRoom] ABSOLUTE DESTRUCTION: " .. targetPlayer.Name)
-    
-    local targetChar = targetPlayer.Character
-    local humanoid = targetChar:FindFirstChild("Humanoid")
-    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    -- ULTIMATE DESTRUCTION: Everything at maximum intensity
-    for wave = 1, 20 do
-        spawn(function()
-            -- Wave 1: Complete structural breakdown
-            for _, obj in pairs(targetChar:GetDescendants()) do
-                safeCall(function()
-                    if obj:IsA("Motor6D") or obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("Joint") or obj:IsA("Attachment") then
-                        obj:Destroy()
-                    end
-                end)
-            end
-            
-            -- Wave 2: Physics chaos
-            humanoid.PlatformStand = true
-            humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-            humanoid:ChangeState(Enum.HumanoidStateType.Freefall)
-            humanoid.Sit = true
-            humanoid.Jump = false
-            humanoid.AutoRotate = false
-            humanoid.Health = 0.1
-            
-            -- Wave 3: Extreme forces on every body part
-            for _, part in pairs(targetChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    spawn(function()
-                        safeCall(function()
-                            -- Multiple force types
-                            local bodyVel = Instance.new("BodyVelocity")
-                            bodyVel.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-                            bodyVel.Velocity = Vector3.new(math.random(-300, 300), math.random(-200, 200), math.random(-300, 300))
-                            bodyVel.Parent = part
-                            
-                            local bodyAngular = Instance.new("BodyAngularVelocity")
-                            bodyAngular.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-                            bodyAngular.AngularVelocity = Vector3.new(math.random(-200, 200), math.random(-200, 200), math.random(-200, 200))
-                            bodyAngular.Parent = part
-                            
-                            -- Assembly velocity (newer Roblox physics)
-                            part.AssemblyLinearVelocity = Vector3.new(math.random(-100, 100), math.random(50, 150), math.random(-100, 100))
-                            part.AssemblyAngularVelocity = Vector3.new(math.random(-50, 50), math.random(-50, 50), math.random(-50, 50))
-                            
-                            -- Network ownership
-                            part:SetNetworkOwner(LocalPlayer)
-                            
-                            task.wait(1)
-                            if bodyVel and bodyVel.Parent then bodyVel:Destroy() end
-                            if bodyAngular and bodyAngular.Parent then bodyAngular:Destroy() end
-                        end)
-                    end)
-                end
-            end
-            
-            -- Wave 4: Spam every single event with maximum intensity
-            for _, obj in pairs(game:GetDescendants()) do
-                if obj:IsA("RemoteEvent") or obj:IsA("RemoteFunction") then
-                    spawn(function()
-                        for spam = 1, 10 do
-                            safeCall(function()
-                                if obj:IsA("RemoteEvent") then
-                                    obj:FireServer(targetPlayer)
-                                    obj:FireServer(targetChar)
-                                    obj:FireServer(rootPart)
-                                    obj:FireServer(humanoid)
-                                    obj:FireServer(self.baseballBat)
-                                    obj:FireServer(LocalPlayer.Character)
-                                    obj:FireServer({target = targetChar, attacker = LocalPlayer.Character, weapon = self.baseballBat})
-                                    obj:FireServer({player = targetPlayer, damage = 100, ragdoll = true})
-                                else
-                                    obj:InvokeServer(targetChar)
-                                    obj:InvokeServer(targetPlayer)
-                                end
-                            end)
-                        end
-                    end)
-                end
-            end
-        end)
-        task.wait(0.05)
-    end
-end
-
-function RagdollSystem:instantRagdoll(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    
-    print("[LockerRoom] INSTANT RAGDOLL: " .. targetPlayer.Name)
-    
-    -- Call absolute destruction
-    self:absoluteDestroy(targetPlayer)
-    
-    local targetChar = targetPlayer.Character
-    local humanoid = targetChar:FindFirstChild("Humanoid")
-    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    -- Additional instant methods
-    spawn(function()
-        -- Teleport player into the ground
-        safeCall(function()
-            rootPart.CFrame = rootPart.CFrame * CFrame.new(0, -1000, 0)
-            task.wait(0.1)
-            rootPart.CFrame = rootPart.CFrame * CFrame.new(0, 1000, 0)
-        end)
-        
-        -- Force character to fall through floor
-        safeCall(function()
-            rootPart.CanCollide = false
-            for _, part in pairs(targetChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-            task.wait(1)
-            for _, part in pairs(targetChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
-            end
-        end)
-    end)
-end
-
-function RagdollSystem:bruteForceRagdoll(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    
-    print("[LockerRoom] BRUTE FORCE RAGDOLL: " .. targetPlayer.Name)
-    
-    local targetChar = targetPlayer.Character
-    local humanoid = targetChar:FindFirstChild("Humanoid")
-    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    -- Method 1: Simulate actual melee hit by positioning and using game mechanics
-    spawn(function()
-        local localChar = LocalPlayer.Character
-        local localHRP = localChar and localChar:FindFirstChild("HumanoidRootPart")
-        
-        if localHRP and self.baseballBat then
-            local originalPos = localHRP.CFrame
-            
-            -- Get right behind target
-            localHRP.CFrame = rootPart.CFrame * CFrame.new(0, 0, 3)
-            
-            -- Position bat to touch target
-            self.baseballBat.CFrame = rootPart.CFrame
-            
-            -- Simulate actual game hit mechanics
-            local hitPart = Instance.new("Part")
-            hitPart.Size = Vector3.new(1, 1, 1)
-            hitPart.Transparency = 1
-            hitPart.CanCollide = false
-            hitPart.Parent = targetChar
-            hitPart.CFrame = rootPart.CFrame
-            
-            -- Make the game think the bat hit the target
-            if self.baseballBat.Touched then
-                self.baseballBat.Touched:Fire(hitPart)
-            end
-            
-            task.wait(0.3)
-            localHRP.CFrame = originalPos
-            if hitPart then hitPart:Destroy() end
-        end
-    end)
-    
-    -- Method 2: Force all body parts to ragdoll individually
-    spawn(function()
-        for _, part in pairs(targetChar:GetChildren()) do
-            if part:IsA("BasePart") then
-                safeCall(function()
-                    part.AssemblyLinearVelocity = Vector3.new(math.random(-50, 50), math.random(10, 50), math.random(-50, 50))
-                    part.AssemblyAngularVelocity = Vector3.new(math.random(-20, 20), math.random(-20, 20), math.random(-20, 20))
-                end)
-            end
-        end
-    end)
-    
-    -- Method 3: Network ownership manipulation
-    spawn(function()
-        safeCall(function()
-            rootPart:SetNetworkOwner(LocalPlayer)
-            for _, part in pairs(targetChar:GetChildren()) do
-                if part:IsA("BasePart") then
-                    part:SetNetworkOwner(LocalPlayer)
-                end
-            end
-        end)
-    end)
-end
-
-function RagdollSystem:triggerRagdoll(targetPlayer)
-    if not targetPlayer or not targetPlayer.Character then return end
-    
-    print("[LockerRoom] Triggering ragdoll for: " .. targetPlayer.Name)
-    
-    -- Enhanced Method 1: Fake hit registration with hitbox extension
-    self:performFakeHit(targetPlayer)
-    
-    -- Method 2: Use ReplicatedStorage events with proper parameters
-    if self.triggerEvent then
-        safeCall(function()
-            self.triggerEvent:FireServer(targetPlayer.Character.HumanoidRootPart, LocalPlayer.Character)
-        end)
-    end
-    
-    -- Method 3: Use melee events with hit data
-    if self.meleeEvent then
-        safeCall(function()
-            local hitData = {
-                Target = targetPlayer.Character.HumanoidRootPart,
-                Attacker = LocalPlayer.Character,
-                Weapon = self.baseballBat,
-                Damage = 100,
-                Force = Vector3.new(0, 50, 0)
-            }
-            self.meleeEvent:FireServer(hitData)
-        end)
-    end
-    
-    -- Method 4: Simulate melee hit through workspace
-    self:simulateMeleeHit(targetPlayer)
-end
-
-function RagdollSystem:performFakeHit(targetPlayer)
-    if not LocalPlayer.Character or not targetPlayer.Character then return end
-    
-    local localChar = LocalPlayer.Character
-    local targetChar = targetPlayer.Character
-    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-    local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not localHRP or not targetHRP then return end
-    
-    print("[LockerRoom] Performing fake hit on: " .. targetPlayer.Name)
-    
-    -- Store original positions
-    local originalPos = localHRP.CFrame
-    local targetPos = targetHRP.CFrame
-    
-    -- Method 1: Teleport behind target, hit, teleport back
-    safeCall(function()
-        -- Teleport behind target
-        local behindTarget = targetPos * CFrame.new(0, 0, 3)
-        localHRP.CFrame = behindTarget
-        
-        task.wait(0.1)
-        
-        -- Simulate hit with baseball bat
-        if self.baseballBat then
-            -- Fire hit events
-            local hitArgs = {
-                targetChar.HumanoidRootPart,
-                self.baseballBat,
-                Vector3.new(0, 0, -50), -- Hit force
-                targetPos.Position
-            }
-            
-            -- Try different event firing methods
-            for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
-                if event:IsA("RemoteEvent") and (
-                    string.find(event.Name:lower(), "hit") or 
-                    string.find(event.Name:lower(), "melee") or
-                    string.find(event.Name:lower(), "attack") or
-                    string.find(event.Name:lower(), "damage")
-                ) then
-                    safeCall(function()
-                        event:FireServer(unpack(hitArgs))
-                    end)
-                end
-            end
-        end
-        
-        task.wait(0.1)
-        
-        -- Teleport back
-        localHRP.CFrame = originalPos
-    end)
-end
-
-function RagdollSystem:simulateMeleeHit(targetPlayer)
-    if not targetPlayer.Character then return end
-    
-    local targetChar = targetPlayer.Character
-    local humanoid = targetChar:FindFirstChild("Humanoid")
-    local rootPart = targetChar:FindFirstChild("HumanoidRootPart")
-    
-    if not humanoid or not rootPart then return end
-    
-    print("[LockerRoom] Simulating melee hit on: " .. targetPlayer.Name)
-    
-    -- Method 1: Create fake damage
-    safeCall(function()
-        humanoid:TakeDamage(0) -- Trigger damage events without actual damage
-        humanoid.Health = humanoid.Health - 0.1 -- Minimal damage to trigger systems
-    end)
-    
-    -- Method 2: Apply physics force to simulate hit
-    safeCall(function()
-        local bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(4000, 4000, 4000)
-        bodyVelocity.Velocity = Vector3.new(math.random(-20, 20), 10, math.random(-20, 20))
-        bodyVelocity.Parent = rootPart
-        
-        -- Remove after short time
-        Services.RunService.Heartbeat:Wait()
-        Services.RunService.Heartbeat:Wait()
-        if bodyVelocity and bodyVelocity.Parent then
-            bodyVelocity:Destroy()
-        end
-    end)
-    
-    -- Method 3: Trigger ragdoll state directly
-    safeCall(function()
-        humanoid.PlatformStand = true
-        humanoid:ChangeState(Enum.HumanoidStateType.Physics)
-        
-        -- Try to find and trigger ragdoll scripts
-        for _, script in pairs(targetChar:GetDescendants()) do
-            if script:IsA("LocalScript") and (
-                string.find(script.Name:lower(), "ragdoll") or
-                string.find(script.Name:lower(), "stun")
-            ) then
-                -- Try to enable the script
-                script.Enabled = true
-            end
-        end
-    end)
-    
-    -- Method 4: Fire all possible ragdoll-related events
-    safeCall(function()
-        for _, event in pairs(Services.ReplicatedStorage:GetDescendants()) do
-            if event:IsA("RemoteEvent") and (
-                string.find(event.Name:lower(), "ragdoll") or
-                string.find(event.Name:lower(), "stun") or
-                string.find(event.Name:lower(), "knockdown")
-            ) then
-                safeCall(function()
-                    event:FireServer(targetPlayer, LocalPlayer)
-                    event:FireServer(targetChar)
-                    event:FireServer(targetChar.HumanoidRootPart)
-                end)
-            end
-        end
-    end)
-end
-
--- Locker room detection system
-local LockerRoomProtection = {
-    enabled = true,
-    detectedPlayers = {},
-    lockerRoomParts = {},
-    checkRadius = 50, -- Radius around player to check for locker room
-    protectionRadius = 25 -- Radius to trigger ragdoll
-}
-
-function LockerRoomProtection:findLockerRoom()
-    print("[LockerRoom] Scanning for locker room parts...")
-    
-    local lockerKeywords = {
-        "locker", "Locker", "LOCKER",
-        "room", "Room", "ROOM",
-        "changing", "Changing", "CHANGING",
-        "dressing", "Dressing", "DRESSING"
-    }
-    
-    local function checkPart(part)
-        if not part.Name then return false end
-        
-        for _, keyword in ipairs(lockerKeywords) do
-            if string.find(part.Name, keyword) then
-                return true
-            end
-        end
-        return false
-    end
-    
-    -- Search workspace for locker room parts
-    local function searchFolder(folder)
-        for _, child in ipairs(folder:GetChildren()) do
-            if child:IsA("BasePart") and checkPart(child) then
-                table.insert(self.lockerRoomParts, child)
-                print("[LockerRoom] Found locker room part: " .. child.Name)
-            elseif child:IsA("Folder") or child:IsA("Model") then
-                searchFolder(child)
-            end
-        end
-    end
-    
-    searchFolder(Services.Workspace)
-    
-    print("[LockerRoom] Found " .. #self.lockerRoomParts .. " locker room parts")
-end
-
-function LockerRoomProtection:isPlayerInLockerRoom(player)
-    if not player.Character or not player.Character:FindFirstChild("HumanoidRootPart") then
-        return false
-    end
-    
-    local playerPosition = player.Character.HumanoidRootPart.Position
-    local localPlayerPosition = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    
-    if not localPlayerPosition then return false end
-    localPlayerPosition = localPlayerPosition.Position
-    
-    -- Check if player is near local player (basic locker room detection)
-    local distance = (playerPosition - localPlayerPosition).Magnitude
-    
-    -- If no specific locker room parts found, use proximity to local player
-    if #self.lockerRoomParts == 0 then
-        return distance <= self.protectionRadius
-    end
-    
-    -- Check proximity to locker room parts
-    for _, part in ipairs(self.lockerRoomParts) do
-        if part and part.Parent then
-            local partDistance = (playerPosition - part.Position).Magnitude
-            if partDistance <= self.protectionRadius then
-                return true
-            end
-        end
-    end
-    
-    return false
-end
-
-function LockerRoomProtection:checkPlayers()
-    if not self.enabled then return end
-    
-    for _, player in ipairs(Services.Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local isInLockerRoom = self:isPlayerInLockerRoom(player)
-            local wasDetected = self.detectedPlayers[player.UserId]
-            
-            if isInLockerRoom and not wasDetected then
-                -- Player entered locker room
-                self.detectedPlayers[player.UserId] = true
-                print("[LockerRoom] INTRUDER DETECTED: " .. player.Name .. " entered locker room!")
-                
-                -- Trigger ragdoll with all methods
-                RagdollSystem:instantRagdoll(player)
-                RagdollSystem:triggerRagdoll(player)
-                RagdollSystem:bruteForceRagdoll(player)
-                
-            elseif not isInLockerRoom and wasDetected then
-                -- Player left locker room
-                self.detectedPlayers[player.UserId] = nil
-                print("[LockerRoom] " .. player.Name .. " left locker room area")
-            end
-        end
-    end
-end
-
-function LockerRoomProtection:toggle()
-    self.enabled = not self.enabled
-    print("[LockerRoom] Protection " .. (self.enabled and "ENABLED" or "DISABLED"))
-    return self.enabled
-end
-
--- Initialize systems
-local function initialize()
-    print("[LockerRoom] Starting Locker Room Protection System...")
-    print("[LockerRoom] Executor: " .. getExecutorName())
-    print("[LockerRoom] Player: " .. LocalPlayer.Name)
-    
-    -- Initialize ragdoll system
-    RagdollSystem:initialize()
-    
-    -- Find locker room
-    LockerRoomProtection:findLockerRoom()
-    
-    -- Start monitoring
-    print("[LockerRoom] Starting player monitoring...")
-    print("[LockerRoom] Protection radius: " .. LockerRoomProtection.protectionRadius .. " studs")
-    
-    -- Main monitoring loop
-    Services.RunService.Heartbeat:Connect(function()
-        LockerRoomProtection:checkPlayers()
-    end)
-    
-    -- Handle player leaving
-    Services.Players.PlayerRemoving:Connect(function(player)
-        LockerRoomProtection.detectedPlayers[player.UserId] = nil
-    end)
-    
-    print("[LockerRoom] Locker Room Protection System initialized!")
-    print("[LockerRoom] Type 'LockerRoomProtection:toggle()' in console to enable/disable")
-end
-
--- Start the system
-task.wait(2)
-initialize()
+print("=== 🛡️  LOCKER ROOM PROTECTION ACTIVE ===")
+print("✅ System ready! Monitoring for intruders...")
+print("💡 To toggle: Defense.active = false/true")
