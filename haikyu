@@ -918,10 +918,10 @@ local function attemptPurchase(localPlayer, targetCharacter, useInstantMode)
         return false
     end
     
-    -- For instant mode, teleport directly to character
-    if useInstantMode and humanoidRootPart then
-        humanoidRootPart.CFrame = targetCharacter.HumanoidRootPart.CFrame * CFrame.new(0, 0, -5)
-        task.wait(0.1)
+    -- For instant mode, fire immediately without any movement
+    if useInstantMode then
+        print("⚡ INSTANT FIRE: No movement, firing directly at " .. targetCharacter.Name)
+        -- Skip all distance and movement checks for instant mode
     elseif humanoidRootPart and torso then
         local distance = (humanoidRootPart.Position - torso.Position).Magnitude
         if distance > CONFIG.AUTO_BUY_DISTANCE * 1.5 then
@@ -1236,25 +1236,30 @@ function AutoBuySystem:mainLoop()
                 continue
             end
             
-            local result = self:followTarget(target)
-            
-            if result == true then
-                print("✅ Successfully purchased: " .. target.Name)
-                self.purchasedCharacters[getCharacterUID(target)] = tick()
-            elseif result == "rebuy" then
-                print("🔄 INSTANT REBUY TRIGGERED - Someone else bought " .. target.Name .. "!")
-                print("🔍 DEBUG: Starting rebuy process...")
+            -- INSTANT REPURCHASE LOGIC: First purchase uses follow, subsequent are instant
+            if self.purchaseCount == 0 then
+                -- First purchase: use follow target
+                print("🚶 First purchase - using follow mode")
+                local result = self:followTarget(target)
                 
-                -- Mark the current target as purchased so we don't target it again
-                local oldUID = getCharacterUID(target)
-                self.purchasedCharacters[oldUID] = tick()
-                
-                self.currentTarget = nil
-                self.currentTargetName = nil
-                
-                print("🔄 Restarting auto-buy loop to find new target...")
-                task.wait(0.1) -- Small delay then continue main loop
-                continue
+                if result == true then
+                    print("✅ First purchase successful: " .. target.Name)
+                    self.purchasedCharacters[getCharacterUID(target)] = tick()
+                elseif result == "rebuy" then
+                    print("🔄 INSTANT REBUY TRIGGERED during first purchase!")
+                    -- Continue to find new target
+                end
+            else
+                -- Subsequent purchases: instant mode - fire immediately without movement
+                print("⚡ Subsequent purchase - using instant mode (no movement)")
+                local success = attemptPurchase(LocalPlayer, target, true) -- true = instant mode
+                if success then
+                    print("✅ Instant purchase successful: " .. target.Name)
+                    self.purchasedCharacters[getCharacterUID(target)] = tick()
+                    task.wait(0.5) -- Brief pause before next scan
+                else
+                    task.wait(0.2) -- Quick retry if failed
+                end
             end
         else
             self.currentTargetName = nil
@@ -3516,4 +3521,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hel")
+print("hedwwdl")
