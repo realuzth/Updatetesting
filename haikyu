@@ -1162,6 +1162,49 @@ function AutoBuySystem:cleanupPromptMonitoring()
     self.promptFiredBy = {}
 end
 
+-- Find all available targets instead of just the best one
+function AutoBuySystem:findAllAvailableTargets()
+    local availableTargets = {}
+    local now = tick()
+    
+    if now - self.lastTargetUpdate < 0.8 then
+        return availableTargets
+    end
+    
+    self.lastTargetUpdate = now
+    
+    for _, charName in ipairs(characterNames) do
+        local charData = COMPLETE_DATABASE[charName]
+        local trackData = gameData.characters[charName]
+        
+        if not trackData.enabled then continue end
+        
+        -- Run respawn detection for this character type
+        detectCharacterRespawn(charName)
+        
+        -- Find ALL instances of this character, not just the first one
+        for _, target in pairs(workspace:GetChildren()) do
+            if target.Name == charName and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
+                local targetUID = getCharacterUID(target)
+                
+                -- Skip if already purchased this specific instance
+                if self.purchasedCharacters[targetUID] then continue end
+                
+                -- Skip if character is heading to another player's spawn
+                if self:isCharacterPurchasedByOther(target) then continue end
+                
+                local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
+                if not torso then continue end
+                
+                -- Add to available targets list
+                table.insert(availableTargets, target)
+            end
+        end
+    end
+    
+    return availableTargets
+end
+
 function AutoBuySystem:findBestTarget()
     local bestTarget = nil
     local bestScore = -math.huge
@@ -1314,53 +1357,42 @@ function AutoBuySystem:mainLoop()
             continue
         end
         
-        local target, score = self:findBestTarget()
+        -- Find ALL available targets, not just the best one
+        local availableTargets = self:findAllAvailableTargets()
         
-        if target then
-            print("🎯 New best target found: " .. target.Name .. " (score: " .. math.floor(score) .. ")")
-            self.currentTarget = target
+        if #availableTargets > 0 then
+            print("🎯 Found " .. #availableTargets .. " available targets")
             
-            -- Check if this target is the same as the one we just detected as bought by someone else
-            if self.lastRebuyTarget and self.lastRebuyTarget == target then
-                print("⚠️ Skipping same target that triggered rebuy: " .. target.Name)
-                self.lastRebuyTarget = nil
-                task.wait(0.5)
-                continue
-            end
-            
-            -- Check if this is a repurchase (we've bought this character name before)
-            local isRepurchase = false
-            for uid, timestamp in pairs(self.purchasedCharacters) do
-                if uid:match("^" .. target.Name .. "_") then
-                    isRepurchase = true
-                    break
-                end
-            end
-            
-            if isRepurchase then
-                -- This is a repurchase - use instant mode
-                print("⚡ REPURCHASE detected for " .. target.Name .. " - using instant mode")
-                local success = attemptPurchase(LocalPlayer, target, true) -- true = instant mode
-                if success then
-                    print("✅ Instant repurchase successful: " .. target.Name)
-                    self.purchasedCharacters[getCharacterUID(target)] = tick()
-                    
-                    -- Continue monitoring for more repurchases until character is gone
-                    self:monitorForRepurchase(target)
-                    task.wait(0.5)
-                else
-                    task.wait(0.2)
-                end
-            else
-                -- First time purchasing this character - use follow mode
-                print("🚶 First purchase of " .. target.Name .. " - using follow mode")
-                local result = self:followTarget(target)
+            -- Process each available target
+            for _, target in pairs(availableTargets) do
+                if not self.active then break end
                 
-                if result == true then
-                    print("✅ First purchase successful: " .. target.Name)
-                    self.purchasedCharacters[getCharacterUID(target)] = tick()
-                elseif result == "rebuy" then
-                    print("🔄 INSTANT REBUY TRIGGERED during first purchase!")
+                -- Check if this specific character instance was already purchased
+                local targetUID = getCharacterUID(target)
+                local alreadyPurchased = self.purchasedCharacters[targetUID] ~= nil
+                
+                if not alreadyPurchased then
+                    print("🚶 Processing new character: " .. target.Name)
+                    self.currentTarget = target
+                    
+                    local result = self:followTarget(target)
+                    
+                    if result == true then
+                        print("✅ Purchase successful: " .. target.Name)
+                        self.purchasedCharacters[targetUID] = tick()
+                        
+                        -- Start persistent monitoring for this character name
+                        self:monitorForRepurchase(target)
+                        
+                        -- Brief pause before next character
+                        task.wait(0.3)
+                    elseif result == "rebuy" then
+                        print("🔄 INSTANT REBUY TRIGGERED during purchase!")
+                    end
+                    
+                    self.currentTarget = nil
+                else
+                    print("⚠️ Already purchased: " .. target.Name .. " - skipping")
                 end
             end
         else
@@ -3623,4 +3655,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hel")
+print("helsw")
