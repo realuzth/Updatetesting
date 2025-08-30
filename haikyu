@@ -20,7 +20,8 @@ local Defense = {
     active = true,
     cooldowns = {},
     range = 25,
-    bat = nil
+    bat = nil,
+    batPart = nil
 }
 
 function Defense:findBat()
@@ -31,21 +32,34 @@ function Defense:findBat()
     if playerFolder then
         local bat = playerFolder:FindFirstChild("BaseballBat")
         if bat then
-            print("✓ Found bat in player folder: " .. bat:GetFullName())
-            return bat
+            print("✓ Found bat tool: " .. bat:GetFullName())
+            
+            -- Find the actual Part inside the Tool
+            local batPart = bat:FindFirstChild("Handle") or bat:FindFirstChildOfClass("Part")
+            if batPart then
+                print("✓ Found bat part: " .. batPart:GetFullName())
+                return bat, batPart
+            else
+                print("✗ No Part found inside bat tool")
+            end
         end
     end
     
     -- Search everywhere in workspace
     for _, obj in pairs(Workspace:GetDescendants()) do
         if obj.Name == "BaseballBat" and obj.Parent and obj.Parent.Name == LocalPlayer.Name then
-            print("✓ Found bat in workspace: " .. obj:GetFullName())
-            return obj
+            print("✓ Found bat tool: " .. obj:GetFullName())
+            
+            local batPart = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("Part")
+            if batPart then
+                print("✓ Found bat part: " .. batPart:GetFullName())
+                return obj, batPart
+            end
         end
     end
     
     print("✗ No baseball bat found")
-    return nil
+    return nil, nil
 end
 
 function Defense:ragdollTarget(target)
@@ -93,10 +107,10 @@ function Defense:ragdollTarget(target)
                     pcall(function()
                         event:FireServer(target, LocalPlayer)
                         event:FireServer(char, LocalPlayer.Character)
-                        event:FireServer(rootPart, self.bat)
-                        if self.bat then
-                            event:FireServer(self.bat, rootPart)
-                            event:FireServer({weapon = self.bat, target = rootPart})
+                        event:FireServer(rootPart, self.batPart)
+                        if self.batPart then
+                            event:FireServer(self.batPart, rootPart)
+                            event:FireServer({weapon = self.batPart, target = rootPart})
                         end
                     end)
                 end
@@ -132,12 +146,12 @@ end
 -- Initialize system
 print("🔧 Setting up defense system...")
 
-Defense.bat = Defense:findBat()
-if Defense.bat then
+Defense.bat, Defense.batPart = Defense:findBat()
+if Defense.bat and Defense.batPart then
     print("🔨 Extending bat hitbox...")
-    Defense.bat.Size = Vector3.new(20, 20, 20)
-    Defense.bat.Transparency = 0.7
-    Defense.bat.CanCollide = false
+    Defense.batPart.Size = Vector3.new(20, 20, 20)
+    Defense.batPart.Transparency = 0.7
+    Defense.batPart.CanCollide = false
     print("✓ Bat hitbox extended to 20x20x20")
 else
     print("⚠️  No bat found - using direct ragdoll methods only")
