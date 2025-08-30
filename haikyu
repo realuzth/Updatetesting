@@ -1085,11 +1085,10 @@ function AutoBuySystem:monitorForRepurchase(character)
                     local uid = getCharacterUID(currentChar)
                     self.purchasedCharacters[uid] = tick()
                     
-                    -- Wait for respawn and keep trying
-                    local attempts = 0
-                    while attempts < 50 and self.active do -- Try for up to 10 seconds
+                    -- Wait for respawn and keep trying - NO LIMITS, NEVER GIVE UP
+                    print("🔄 WAITING FOR RESPAWN: " .. characterName .. " - will wait forever...")
+                    while self.active do -- Wait forever until respawn
                         task.wait(0.2)
-                        attempts = attempts + 1
                         
                         local respawnedChar = self:findRespawnedCharacter(characterName)
                         if respawnedChar then
@@ -1098,7 +1097,10 @@ function AutoBuySystem:monitorForRepurchase(character)
                             if success then
                                 print("✅ PERSISTENT repurchase successful: " .. characterName)
                                 self.purchasedCharacters[getCharacterUID(respawnedChar)] = tick()
+                                print("🔄 CONTINUING ENDLESS MONITORING for: " .. characterName)
                                 break -- Exit respawn loop, continue main monitoring
+                            else
+                                print("❌ Repurchase failed, will keep trying...")
                             end
                         end
                     end
@@ -3621,4 +3623,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("helwsdw")
+print("hel")
