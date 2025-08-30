@@ -1048,41 +1048,69 @@ function AutoBuySystem:monitorCharacterPrompt(character)
     end)
 end
 
--- Monitor for repurchases until character is gone
+-- Monitor for repurchases until character is gone - NEVER GIVES UP
 function AutoBuySystem:monitorForRepurchase(character)
     if not character or not character.Parent then return end
     
     local characterName = character.Name
-    print("🔍 Starting repurchase monitoring for: " .. characterName)
+    print("🔍 Starting PERSISTENT repurchase monitoring for: " .. characterName)
     
-    -- Monitor in a separate coroutine
+    -- Add to persistent monitoring list
+    if not self.persistentRepurchaseMonitors then
+        self.persistentRepurchaseMonitors = {}
+    end
+    
+    -- Prevent duplicate monitors for same character
+    if self.persistentRepurchaseMonitors[characterName] then
+        print("⚠️ Already monitoring " .. characterName .. " for repurchases")
+        return
+    end
+    
+    self.persistentRepurchaseMonitors[characterName] = true
+    
+    -- Monitor in a separate coroutine that NEVER stops
     task.spawn(function()
-        while character.Parent and self.active do
-            -- Check if someone else bought the character
-            if self:isCharacterPurchasedByOther(character) then
-                print("⚡ REPURCHASE OPPORTUNITY: " .. characterName .. " was bought by someone else!")
-                
-                -- Wait a moment for respawn
-                task.wait(0.5)
-                
-                -- Look for the respawned character
-                local respawnedChar = self:findRespawnedCharacter(characterName)
-                if respawnedChar then
-                    print("🔄 Found respawned " .. characterName .. " - attempting instant repurchase")
-                    local success = attemptPurchase(LocalPlayer, respawnedChar, true)
-                    if success then
-                        print("✅ Instant repurchase successful: " .. characterName)
-                        self.purchasedCharacters[getCharacterUID(respawnedChar)] = tick()
-                        -- Continue monitoring the new instance
-                        character = respawnedChar
+        print("🔄 PERSISTENT MONITOR: Starting endless repurchase monitoring for " .. characterName)
+        
+        while self.active do
+            -- Continuously scan for this character in workspace
+            local currentChar = self:findCharacterInWorkspace(characterName)
+            
+            if currentChar then
+                -- Check if someone else bought it
+                if self:isCharacterPurchasedByOther(currentChar) then
+                    print("⚡ PERSISTENT REPURCHASE: " .. characterName .. " was bought by someone else!")
+                    
+                    -- Mark it as purchased so we don't target it in main loop
+                    local uid = getCharacterUID(currentChar)
+                    self.purchasedCharacters[uid] = tick()
+                    
+                    -- Wait for respawn and keep trying
+                    local attempts = 0
+                    while attempts < 50 and self.active do -- Try for up to 10 seconds
+                        task.wait(0.2)
+                        attempts = attempts + 1
+                        
+                        local respawnedChar = self:findRespawnedCharacter(characterName)
+                        if respawnedChar then
+                            print("🔄 PERSISTENT: Found respawned " .. characterName .. " - attempting instant repurchase")
+                            local success = attemptPurchase(LocalPlayer, respawnedChar, true)
+                            if success then
+                                print("✅ PERSISTENT repurchase successful: " .. characterName)
+                                self.purchasedCharacters[getCharacterUID(respawnedChar)] = tick()
+                                break -- Exit respawn loop, continue main monitoring
+                            end
+                        end
                     end
                 end
             end
             
-            task.wait(0.2) -- Check every 0.2 seconds
+            task.wait(0.3) -- Check every 0.3 seconds
         end
         
-        print("🛑 Stopped monitoring repurchases for: " .. characterName)
+        -- Clean up when system stops
+        self.persistentRepurchaseMonitors[characterName] = nil
+        print("🛑 PERSISTENT MONITOR STOPPED for: " .. characterName)
     end)
 end
 
@@ -1095,6 +1123,16 @@ function AutoBuySystem:findRespawnedCharacter(characterName)
             if not self.purchasedCharacters[uid] then
                 return char
             end
+        end
+    end
+    return nil
+end
+
+-- Find any character in workspace by name (for persistent monitoring)
+function AutoBuySystem:findCharacterInWorkspace(characterName)
+    for _, char in pairs(workspace:GetChildren()) do
+        if char.Name == characterName and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
+            return char
         end
     end
     return nil
@@ -3583,4 +3621,4 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("hel")
+print("helwsdw")
