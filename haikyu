@@ -681,3 +681,4 @@ end
 -- Start the system
 task.wait(2)
 initialize()
+print("test1")
