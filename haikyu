@@ -15,7 +15,8 @@ local Services = {
     VirtualInputManager = game:GetService("VirtualInputManager"),
     HttpService = game:GetService("HttpService"),
     TweenService = game:GetService("TweenService"),
-    TeleportService = game:GetService("TeleportService")
+    TeleportService = game:GetService("TeleportService"),
+    Workspace = game:GetService("Workspace")
 }
 
 -- WEBHOOK CONFIGURATION - All webhooks as requested
@@ -325,7 +326,8 @@ local RARITY_COLORS = {
 
 local MUTATION_COLORS = {
     Golden = Color3.fromRGB(255, 215, 0),
-    Diamond = Color3.fromRGB(185, 242, 255)
+    Diamond = Color3.fromRGB(185, 242, 255),
+    Emerald = Color3.fromRGB(80, 200, 120)
 }
 
 local GameState = {
@@ -400,25 +402,25 @@ local function generateMutationVariants()
         }
     end
     
-    -- Golden variants (1.2x multiplier)
+    -- Golden variants (1.25x multiplier)
     for name, data in pairs(CHARACTER_DATABASE) do
         local goldenName = "Golden " .. name
-        local goldenIncome = math.floor(data.income * 1.2)
+        local goldenIncome = math.floor(data.income * 1.25 + 0.5)
         variants[goldenName] = {
             rarity = data.rarity, 
             tier = data.tier, 
             baseChar = data.baseChar, 
             mutation = "Golden", 
             income = goldenIncome,
-            multiplier = 1.2, 
+            multiplier = 1.25, 
             fullName = goldenName
         }
     end
     
-    -- Diamond variants (1.7x multiplier)
+    -- Diamond variants (1.75x multiplier)
     for name, data in pairs(CHARACTER_DATABASE) do
         local diamondName = "Diamond " .. name
-        local diamondIncome = math.floor(data.income * 1.75)
+        local diamondIncome = math.floor(data.income * 1.75 + 0.5)
         variants[diamondName] = {
             rarity = data.rarity, 
             tier = data.tier, 
@@ -427,6 +429,21 @@ local function generateMutationVariants()
             income = diamondIncome,
             multiplier = 1.75, 
             fullName = diamondName
+        }
+    end
+    
+    -- Emerald variants (2.4x multiplier)
+    for name, data in pairs(CHARACTER_DATABASE) do
+        local emeraldName = "Emerald " .. name
+        local emeraldIncome = math.floor(data.income * 2.4 + 0.5)
+        variants[emeraldName] = {
+            rarity = data.rarity, 
+            tier = data.tier, 
+            baseChar = data.baseChar, 
+            mutation = "Emerald", 
+            income = emeraldIncome,
+            multiplier = 2.4, 
+            fullName = emeraldName
         }
     end
     
@@ -459,7 +476,16 @@ local function getSortedCharacters()
         "Diamond Kenma Kozume", "Diamond Yaku Morisuke", "Diamond Yamaguchi", "Diamond Satori Tendo",
         "Diamond Daichi Sawamura", "Diamond Rintaro Suna", "Diamond Atsumu Miya", "Diamond Kei Tsukishima",
         "Diamond Shoyo Hinata", "Diamond Hajime Iwaizumi", "Diamond Kentaro Kyotani", "Diamond Yuu Nishinoya",
-        "Diamond Taketora Yamamoto", "Diamond Lev Haiba", "Diamond Komori Motoya"
+        "Diamond Taketora Yamamoto", "Diamond Lev Haiba", "Diamond Komori Motoya", "Emerald Timeskip Hinata", 
+        "Emerald Awakened Tobio Kageyama", "Emerald Awakened Kiyoomi Sakusa", "Emerald Awakened Korai Hoshiumi", 
+        "Emerald Awakened Wakatoshi Ushijima", "Emerald Shinsuke Kita", "Emerald Tobio Kageyama", 
+        "Emerald Korai Hoshiumi", "Emerald Wakatoshi Ushijima", "Emerald Kiyoomi Sakusa", "Emerald Keiji Akaashi", 
+        "Emerald Takanobu Aone", "Emerald Tetsuro Kuroo", "Emerald Alt Art MSBY Atsumu", "Emerald Kotaro Bokuto", 
+        "Emerald Oikawa", "Emerald Koshi Sugawara", "Emerald Kenma Kozume", "Emerald Yaku Morisuke", 
+        "Emerald Yamaguchi", "Emerald Satori Tendo", "Emerald Daichi Sawamura", "Emerald Rintaro Suna", 
+        "Emerald Atsumu Miya", "Emerald Kei Tsukishima", "Emerald Shoyo Hinata", "Emerald Hajime Iwaizumi", 
+        "Emerald Kentaro Kyotani", "Emerald Yuu Nishinoya", "Emerald Taketora Yamamoto", "Emerald Lev Haiba", 
+        "Emerald Komori Motoya"
     }
     
     for name, data in pairs(COMPLETE_DATABASE) do
@@ -468,7 +494,7 @@ local function getSortedCharacters()
             data.tier = tierMap[data.rarity] or 8
         end
         if not data.baseChar then
-            local cleanName = name:gsub("Golden ", ""):gsub("Diamond ", "")
+            local cleanName = name:gsub("Golden ", ""):gsub("Diamond ", ""):gsub("Emerald ", "")
             data.baseChar = cleanName
         end
     end
@@ -510,452 +536,618 @@ local function safeSave()
     end
 end
 
--- Enhanced Auto Buy System with purchase tracking and re-purchase detection
-local AutoBuySystem = {
-    active = false,
-    currentTarget = nil,
-    currentTargetName = nil,
-    purchaseCount = 0, -- Track total purchases made
-    purchasedCharacters = {},
-    purchaseInProgress = {},
-    characterInstances = {},  
-    movementTracking = {},    
-    spawnLocationCache = {},   
-    lastTargetUpdate = 0,
-    lastRebuyTarget = nil,
-    promptFiredBy = {},  
-    promptConnections = {}  
+-- Constants
+local CenterOfTheWorld = Vector3.new(-1002.9886474609375, 24.050031661987305, -3.699737071990967)
+local SecondFloorSell = {
+    [1] = Vector3.new(-944.6287841796875, 53.45005416870117, -97.4540786743164),
+    [2] = Vector3.new(-944.8762817382812, 53.45005416870117, -36.702693939208984),
+    [3] = Vector3.new(-944.3007202148438, 53.45005416870117, 22.596296310424805),
+    [4] = Vector3.new(-945.2091674804688, 53.45005416870117, 83.77536010742188),
+    [5] = Vector3.new(-1058.85791015625, 53.45005416870117, -90.34595489501953),
+    [6] = Vector3.new(-1058.114990234375, 53.45005416870117, -30.55303382873535),
+    [7] = Vector3.new(-1057.5394287109375, 53.45005416870117, 28.96803855895996),
+    [8] = Vector3.new(-1057.6533203125, 53.45005416870117, 89.20547485351562)
 }
 
--- Get player's spawn location
+-- Enhanced Auto Buy System
+local AutoBuySystem = {
+    active = false,
+    kaitunActive = false,
+    currentTarget = nil,
+    currentTargetName = nil,
+    lockerData = {},
+    occupantData = {},
+    purchasedCharacters = {},
+    purchaseInProgress = {},
+    tweenInProgress = false,
+    isResetting = false,
+    lastLockerUpdate = 0,
+    connections = {}
+}
+
+-- Helper Functions
 local function getPlayerSpawnLocation()
-    local player = Services.Players.LocalPlayer
-    return player.RespawnLocation or workspace:FindFirstChild("SpawnLocation" .. player.Name)
+    return player.RespawnLocation or workspace:FindFirstChild("SpawnLocation" .. tostring(player.UserId):sub(-1))
 end
 
--- Get all other spawn locations (excluding player's)
-local function getOtherSpawnLocations()
-    local playerSpawn = getPlayerSpawnLocation()
-    local otherSpawns = {}
+local function getPlayerLockerRoom()
+    local spawn = getPlayerSpawnLocation()
+    if not spawn then return nil end
     
-    for _, spawnName in ipairs(SPAWN_LOCATIONS) do
-        local spawn = workspace:FindFirstChild(spawnName)
-        if spawn and spawn ~= playerSpawn then
-            table.insert(otherSpawns, spawn)
+    local idx = tonumber(spawn.Name:match("%d+"))
+    if not idx then return nil end
+    
+    local roomsFolder = workspace:FindFirstChild("Map")
+    if roomsFolder then roomsFolder = roomsFolder:FindFirstChild("Rooms") end
+    if not roomsFolder then return nil end
+    
+    return roomsFolder:FindFirstChild("LockerRoom" .. idx)
+end
+
+local function getAllLockers()
+    local lockerRoom = getPlayerLockerRoom()
+    if not lockerRoom then return {} end
+    
+    local lockers = lockerRoom:FindFirstChild("Lockers")
+    if not lockers then return {} end
+    
+    local lockerList = {}
+    for _, locker in pairs(lockers:GetChildren()) do
+        if locker.Name:match("Locker%d+") then
+            local lockerNum = tonumber(locker.Name:match("%d+"))
+            if lockerNum then
+                table.insert(lockerList, {
+                    object = locker,
+                    number = lockerNum,
+                    isSecondFloor = lockerNum > 10
+                })
+            end
         end
     end
     
-    return otherSpawns
+    table.sort(lockerList, function(a, b) return a.number < b.number end)
+    return lockerList
 end
 
--- Enhanced movement tracking for characters
-local function trackCharacterMovement(character)
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
-    
-    local uid = nil
-    pcall(function()
-        uid = getCharacterUID(character)
-    end)
-    
-    if not uid then return nil end
-    
+local function getOccupantValue(locker)
+    local occupant = locker:FindFirstChild("Occupant")
+    if occupant and occupant:IsA("StringValue") then
+        return occupant.Value ~= "none" and occupant.Value or nil
+    end
+    return nil
+end
+
+local function updateLockerData()
     local now = tick()
-    local position = character.HumanoidRootPart.Position
+    if now - AutoBuySystem.lastLockerUpdate < 1 then return end
+    AutoBuySystem.lastLockerUpdate = now
     
-    -- Initialize movementTracking table if it doesn't exist
-    if not AutoBuySystem.movementTracking then
-        AutoBuySystem.movementTracking = {}
-    end
+    local lockers = getAllLockers()
+    AutoBuySystem.lockerData = lockers
+    AutoBuySystem.occupantData = {}
     
-    if not AutoBuySystem.movementTracking[uid] then
-        AutoBuySystem.movementTracking[uid] = {
-            positions = {},
-            lastUpdate = now,
-            isMoving = false,
-            direction = nil,
-            targetSpawn = nil
+    for _, lockerInfo in pairs(lockers) do
+        local occupant = getOccupantValue(lockerInfo.object)
+        AutoBuySystem.occupantData[lockerInfo.number] = {
+            characterName = occupant,
+            locker = lockerInfo,
+            income = occupant and COMPLETE_DATABASE[occupant] and COMPLETE_DATABASE[occupant].income or 0
         }
     end
     
-    local tracking = AutoBuySystem.movementTracking[uid]
-    
-    -- Update position history
-    table.insert(tracking.positions, {position = position, time = now})
-    
-    -- Keep only recent positions (last 5 seconds)
-    while #tracking.positions > 0 and (now - tracking.positions[1].time) > 5 do
-        table.remove(tracking.positions, 1)
-    end
-    
-    -- Calculate movement
-    if #tracking.positions >= 2 then
-        local oldPos = tracking.positions[1].position
-        local newPos = tracking.positions[#tracking.positions].position
-        local distance = (newPos - oldPos).Magnitude
-        
-        tracking.isMoving = distance > CONFIG.MOVEMENT_THRESHOLD
-        
-        if tracking.isMoving then
-            tracking.direction = (newPos - oldPos).Unit
+    print("📊 Updated locker data - Found " .. #lockers .. " lockers")
+    for num, data in pairs(AutoBuySystem.occupantData) do
+        if data.characterName then
+            print("  Locker " .. num .. ": " .. data.characterName .. " (Income: " .. data.income .. ")")
         end
     end
-    
-    return tracking
 end
 
--- Check if character is heading towards a specific spawn location
-local function isCharacterHeadingToSpawn(character, spawnLocation)
-    if not character or not spawnLocation or not character:FindFirstChild("HumanoidRootPart") then
-        return false
+local function tweenToPosition(targetPosition, speed)
+    if AutoBuySystem.tweenInProgress then return false end
+    AutoBuySystem.tweenInProgress = true
+    
+    -- Update character references
+    character = player.Character
+    if not character then 
+        AutoBuySystem.tweenInProgress = false
+        return false 
     end
     
-    if not spawnLocation.Position then
-        return false
+    humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then 
+        AutoBuySystem.tweenInProgress = false
+        return false 
     end
     
-    local tracking = nil
-    pcall(function()
-        tracking = trackCharacterMovement(character)
+    local distance = (humanoidRootPart.Position - targetPosition).Magnitude
+    local duration = distance / (speed or 50) -- Default speed of 50 studs/second
+    
+    local tweenInfo = TweenInfo.new(
+        duration,
+        Enum.EasingStyle.Linear,
+        Enum.EasingDirection.InOut,
+        0,
+        false,
+        0
+    )
+    
+    local tween = Services.TweenService:Create(
+        humanoidRootPart,
+        tweenInfo,
+        {CFrame = CFrame.new(targetPosition)}
+    )
+    
+    local completed = false
+    tween.Completed:Connect(function()
+        completed = true
+        AutoBuySystem.tweenInProgress = false
     end)
     
-    if not tracking or not tracking.isMoving or not tracking.direction then
+    tween:Play()
+    
+    -- Wait for completion with timeout
+    local startTime = tick()
+    while not completed and (tick() - startTime) < (duration + 5) and AutoBuySystem.active do
+        task.wait(0.1)
+    end
+    
+    if not completed then
+        tween:Cancel()
+        AutoBuySystem.tweenInProgress = false
         return false
     end
-    
-    local charPos = character.HumanoidRootPart.Position
-    local spawnPos = spawnLocation.Position
-    local distanceToSpawn = (spawnPos - charPos).Magnitude
-    
-    -- If too far away, not heading there
-    if distanceToSpawn > CONFIG.SPAWN_CHECK_DISTANCE then
-        return false
-    end
-    
-    -- Calculate direction to spawn
-    local directionToSpawn = (spawnPos - charPos).Unit
-    
-    -- Check if movement direction aligns with spawn direction (dot product > 0.7 means roughly same direction)
-    local alignment = tracking.direction:Dot(directionToSpawn)
-    
-    return alignment > 0.7 and distanceToSpawn < CONFIG.SPAWN_CHECK_DISTANCE
-end
-
--- Purchase detection using proximity prompt event monitoring
-function AutoBuySystem:isCharacterPurchasedByOther(character)
-    if not character or not character.Parent then return false end
-    if not character:FindFirstChild("HumanoidRootPart") then return false end
-    
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
-    if not torso then return false end
-    
-    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
-    
-    -- Use robust UID generation that never returns nil
-    local uid = character.Name .. "_" .. tostring(tick()) .. "_" .. tostring(math.random(1000, 9999))
-    
-    -- Check if someone else fired this prompt (not us)
-    if self.promptFiredBy[uid] and self.promptFiredBy[uid] ~= player then
-        print("🔍 PURCHASE DETECTED: " .. character.Name .. " bought by " .. tostring(self.promptFiredBy[uid]))
-        return true
-    end
-    
-    -- Check if proximity prompt is disabled (backup method)
-    if not prompt.Enabled then
-        -- If we didn't fire it, someone else did
-        if not self.promptFiredBy[uid] or self.promptFiredBy[uid] ~= player then
-            print("🔍 PURCHASE DETECTED: " .. character.Name .. " prompt disabled by other player")
-            return true
-        end
-    end
-    
-    return false
-end
-
--- Helper function to get unique character identifier
-local function getCharacterUID(character)
-    if not character then return nil end
-    if not character.Parent then return nil end
-    if not character.Name then return nil end
-    
-    local creationTime = nil
-    pcall(function()
-        creationTime = character:GetAttribute("CreationTime")
-    end)
-    
-    if not creationTime then
-        local success, guid = pcall(function()
-            return Services.HttpService:GenerateGUID(false)
-        end)
-        
-        if success and guid then
-            creationTime = guid
-        else
-            local pos = character:FindFirstChild("HumanoidRootPart")
-            local posString = "nopos"
-            if pos and pos.Position then
-                pcall(function()
-                    posString = string.format("%.2f_%.2f_%.2f", pos.Position.X, pos.Position.Y, pos.Position.Z)
-                end)
-            end
-            creationTime = tostring(tick()) .. "_" .. posString .. "_" .. tostring(math.random(10000, 99999))
-        end
-        
-        if creationTime then
-            pcall(function()
-                character:SetAttribute("CreationTime", creationTime)
-            end)
-        end
-    end
-    
-    if not creationTime then
-        -- Final fallback if everything fails
-        creationTime = tostring(tick()) .. "_fallback"
-    end
-    
-    return character.Name .. "_" .. tostring(creationTime)
-end
-
--- Check if character was purchased by us specifically
-local function isCharacterPurchasedByUs(character)
-    -- Use robust UID generation that never returns nil
-    local uid = character.Name .. "_" .. tostring(tick()) .. "_" .. tostring(math.random(1000, 9999))
-    
-    -- Check if we marked this specific instance as purchased
-    local purchaseData = AutoBuySystem.purchasedCharacters[uid]
-    if purchaseData and character.Parent == workspace then
-        return true
-    end
-    
-    -- Check if we're currently trying to purchase it
-    if AutoBuySystem.purchaseInProgress[uid] then
-        return true
-    end
-    
-    -- Clean up stale purchase records
-    if purchaseData and character.Parent ~= workspace then
-        AutoBuySystem.purchasedCharacters[uid] = nil
-        if AutoBuySystem.characterInstances[character.Name] then
-            AutoBuySystem.characterInstances[character.Name][uid] = nil
-        end
-    end
-    
-    return false
-end
-
--- Enhanced function to detect if a character respawned after being purchased by someone else
-local function detectCharacterRespawn(characterName)
-    if not AutoBuySystem.characterInstances[characterName] then return false end
-    
-    -- Get current instances in workspace
-    local currentInstances = {}
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj.Name == characterName then
-            local uid = getCharacterUID(obj)
-            if uid then
-                currentInstances[uid] = obj
-            end
-        end
-    end
-    
-    -- Check if any previously tracked instances are missing
-    local respawnDetected = false
-    for trackedUID, data in pairs(AutoBuySystem.characterInstances[characterName]) do
-        if not currentInstances[trackedUID] and data.character.Parent ~= workspace then
-            -- This instance disappeared, likely bought by someone else
-            -- Clear our records for this instance
-            AutoBuySystem.purchasedCharacters[trackedUID] = nil
-            AutoBuySystem.characterInstances[characterName][trackedUID] = nil
-            respawnDetected = true
-            print("🔍 Detected " .. characterName .. " was bought by someone else - cleared purchase record")
-        end
-    end
-    
-    -- Update our tracked instances to current ones
-    for uid, obj in pairs(currentInstances) do
-        if not AutoBuySystem.characterInstances[characterName][uid] then
-            -- New instance appeared
-            AutoBuySystem.characterInstances[characterName][uid] = {
-                character = obj,
-                firstSeen = tick()
-            }
-        end
-    end
-    
-    return respawnDetected
-end
-
--- Check if character has already been purchased (enhanced version)
-local function isCharacterPurchased(character)
-    -- Check if we purchased this character
-    if isCharacterPurchasedByUs(character) then
-        return true
-    end
-    
-    -- Check if someone else purchased this character
-    if AutoBuySystem:isCharacterPurchasedByOther(character) then
-        return true
-    end
-    
-    return false
-end
-
--- Mark character as purchased (enhanced version)
-local function markCharacterPurchased(character, success)
-    local uid = getCharacterUID(character)
-    if not uid then return end
-    
-    if success then
-        AutoBuySystem.purchasedCharacters[uid] = {
-            timestamp = tick(),
-            characterName = character.Name,
-            purchaseTime = os.time(),
-            characterInstance = character  -- Keep reference to the specific instance
-        }
-        
-        -- Update our instance tracking
-        if not AutoBuySystem.characterInstances[character.Name] then
-            AutoBuySystem.characterInstances[character.Name] = {}
-        end
-        AutoBuySystem.characterInstances[character.Name][uid] = {
-            character = character,
-            purchased = true,
-            purchaseTime = tick()
-        }
-        
-        AutoBuySystem.purchaseInProgress[uid] = nil
-        print("✅ Successfully purchased: " .. character.Name .. " (UID: " .. uid:sub(-8) .. ")")
-        
-        -- Clean up old purchase records after 5 minutes
-        spawn(function()
-            task.wait(300)
-            if AutoBuySystem.purchasedCharacters[uid] then
-                AutoBuySystem.purchasedCharacters[uid] = nil
-            end
-        end)
-    else
-        AutoBuySystem.purchaseInProgress[uid] = nil
-        print("❌ Failed to purchase: " .. character.Name)
-    end
-    
-    -- Clean up old tracking data
-    local currentTime = tick()
-    for storedUID, data in pairs(AutoBuySystem.purchasedCharacters) do
-        if type(data) == "table" and data.timestamp and (currentTime - data.timestamp) > 600 then
-            AutoBuySystem.purchasedCharacters[storedUID] = nil
-        end
-    end
-end
-
--- Mark character as being purchased
-local function markCharacterInProgress(character)
-    local uid = getCharacterUID(character)
-    if not uid then return false end
-    
-    if AutoBuySystem.purchaseInProgress[uid] then
-        return false
-    end
-    
-    AutoBuySystem.purchaseInProgress[uid] = {
-        timestamp = tick(),
-        characterName = character.Name
-    }
-    
-    spawn(function()
-        task.wait(15)
-        if AutoBuySystem.purchaseInProgress[uid] then
-            AutoBuySystem.purchaseInProgress[uid] = nil
-        end
-    end)
     
     return true
 end
 
--- Enhanced purchase function with duplicate prevention and instant mode
-local function attemptPurchase(localPlayer, targetCharacter, useInstantMode)
-    if not targetCharacter or not targetCharacter.Parent then
-        return false
+local function resetPlayer()
+    if AutoBuySystem.isResetting then return end
+    AutoBuySystem.isResetting = true
+    
+    print("🔄 Resetting player...")
+    
+    -- Reset the character
+    if character and character.Parent then
+        character.Humanoid.Health = 0
     end
     
-    if isCharacterPurchased(targetCharacter) then
-        return false
+    -- Wait for respawn
+    character = player.CharacterAdded:Wait()
+    humanoid = character:WaitForChild("Humanoid")
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+    
+    -- Wait a moment for everything to load
+    task.wait(2)
+    
+    AutoBuySystem.isResetting = false
+    print("✅ Player reset complete")
+end
+
+local function isCharacterBought(characterName)
+    local characterModel = workspace:FindFirstChild(characterName)
+    if not characterModel then return true end -- Character not in workspace means bought/despawned
+    
+    local torso = characterModel:FindFirstChild("Torso") or characterModel:FindFirstChild("HumanoidRootPart")
+    if not torso then return true end
+    
+    local buyPrompt = torso:FindFirstChild("BuyPrompt")
+    if not buyPrompt then return true end
+    
+    return not buyPrompt.Enabled -- If prompt is disabled, character is bought
+end
+
+local function fireProximityPrompt(prompt, maxDistance)
+    if not prompt or not prompt:IsA("ProximityPrompt") then return false end
+    if not humanoidRootPart then return false end
+    
+    local promptParent = prompt.Parent
+    if not promptParent then return false end
+    
+    local distance = (humanoidRootPart.Position - promptParent.Position).Magnitude
+    if distance <= maxDistance then
+        prompt.MaxActivationDistance = maxDistance
+        fireproximityprompt(prompt)
+        return true
     end
     
-    -- Double-check if character is heading to another spawn before purchase
-    if AutoBuySystem:isCharacterPurchasedByOther(targetCharacter) then
-        print("🚫 Aborting purchase - character heading to another spawn: " .. targetCharacter.Name)
-        return false
+    return false
+end
+
+local function buyCharacter(characterName)
+    local characterModel = workspace:FindFirstChild(characterName)
+    if not characterModel then return false end
+    
+    print("💰 Attempting to buy: " .. characterName)
+    
+    -- Tween to character
+    local targetPos = characterModel.HumanoidRootPart.Position
+    if not tweenToPosition(targetPos, 100) then return false end
+    
+    -- Get closer to the character for buying
+    local closePos = characterModel.HumanoidRootPart.Position + Vector3.new(0, 0, 5)
+    tweenToPosition(closePos, 30)
+    
+    -- Find and fire the buy prompt
+    local torso = characterModel:FindFirstChild("Torso") or characterModel:FindFirstChild("HumanoidRootPart")
+    if not torso then return false end
+    
+    local buyPrompt = torso:FindFirstChild("BuyPrompt")
+    if not buyPrompt or not buyPrompt.Enabled then return false end
+    
+    -- Fire proximity prompt within 20 studs
+    local success = fireProximityPrompt(buyPrompt, 20)
+    if success then
+        print("✅ Successfully bought: " .. characterName)
+        task.wait(1) -- Wait for purchase to process
+        return true
     end
     
-    if not markCharacterInProgress(targetCharacter) then
-        return false
-    end
-    
-    if useInstantMode then
-        print("⚡ INSTANT PURCHASE: " .. targetCharacter.Name)
-    else
-        print("🛒 Attempting to purchase: " .. targetCharacter.Name)
-    end
-    
-    local torso = targetCharacter:FindFirstChild("Torso") or targetCharacter:FindFirstChild("HumanoidRootPart")
-    if not torso then 
-        warn("[AutoBuy] No torso/HumanoidRootPart found on target: " .. targetCharacter.Name)
-        markCharacterPurchased(targetCharacter, false)
-        return false 
-    end
-    
-    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-    if not prompt or not prompt:IsA("ProximityPrompt") then
-        warn("[AutoBuy] No valid proximity prompt found on: " .. targetCharacter.Name)
-        markCharacterPurchased(targetCharacter, false)
-        return false
-    end
-    
-    -- Check if prompt is still enabled (not purchased by someone else)
-    if not prompt.Enabled then
-        print("⚠️ Purchase prompt disabled - someone else bought: " .. targetCharacter.Name)
-        markCharacterPurchased(targetCharacter, false)
-        return false
-    end
-    
-    -- For instant mode, fire immediately without any movement
-    if useInstantMode then
-        print("⚡ INSTANT FIRE: No movement, firing directly at " .. targetCharacter.Name)
-        -- Skip all distance and movement checks for instant mode
-    elseif humanoidRootPart and torso then
-        local distance = (humanoidRootPart.Position - torso.Position).Magnitude
-        if distance > CONFIG.AUTO_BUY_DISTANCE * 1.5 then
-            warn("[AutoBuy] Too far from target: " .. targetCharacter.Name .. " (distance: " .. math.floor(distance) .. ")")
-            markCharacterPurchased(targetCharacter, false)
-            return false
+    return false
+end
+
+local function sellCharacter(lockerNumber)
+    local lockerInfo = nil
+    for _, locker in pairs(AutoBuySystem.lockerData) do
+        if locker.number == lockerNumber then
+            lockerInfo = locker
+            break
         end
     end
     
-    -- Single attempt to prevent money drain
-    local purchaseSuccess = false
-    local success = pcall(function()
-        fireproximityprompt(prompt)
-        purchaseSuccess = true
-    end)
+    if not lockerInfo then 
+        print("❌ Locker " .. lockerNumber .. " not found")
+        return false 
+    end
     
-    if success and purchaseSuccess then
-        AutoBuySystem.purchaseCount = AutoBuySystem.purchaseCount + 1
-        print("🎯 Purchase successful: " .. targetCharacter.Name .. " (Total: " .. AutoBuySystem.purchaseCount .. ")")
-        markCharacterPurchased(targetCharacter, true)
+    local occupantData = AutoBuySystem.occupantData[lockerNumber]
+    if not occupantData or not occupantData.characterName then 
+        print("❌ No character in locker " .. lockerNumber)
+        return false 
+    end
+    
+    print("🔥 Selling character from locker " .. lockerNumber .. ": " .. occupantData.characterName)
+    
+    -- Find the character in the locker
+    local characterModel = lockerInfo.object:FindFirstChild(occupantData.characterName)
+    if not characterModel then 
+        print("❌ Character model not found in locker: " .. occupantData.characterName)
+        return false 
+    end
+    
+    local characterHRP = characterModel:FindFirstChild("HumanoidRootPart")
+    if not characterHRP then 
+        print("❌ Character HRP not found: " .. occupantData.characterName)
+        return false 
+    end
+    
+    local sellPrompt = characterHRP:FindFirstChild("Sell")
+    if not sellPrompt or not sellPrompt:IsA("ProximityPrompt") then 
+        print("❌ Sell prompt not found for: " .. occupantData.characterName)
+        return false 
+    end
+    
+    local sellSuccess = false
+    
+    -- Handle different floor navigation
+    if lockerInfo.isSecondFloor then
+        print("🏢 Navigating to second floor for locker " .. lockerNumber)
+        
+        -- Step 1: Go to center of the world
+        if not tweenToPosition(CenterOfTheWorld, 100, 8) then
+            print("❌ Failed to reach center of world")
+            return false
+        end
+        
+        -- Step 2: Get player spawn location number for second floor position
+        local spawn = getPlayerSpawnLocation()
+        if not spawn then
+            print("❌ Could not find player spawn location")
+            return false
+        end
+        
+        local spawnNum = tonumber(spawn.Name:match("%d+")) or 1
+        local secondFloorPos = SecondFloorSell[spawnNum]
+        
+        if not secondFloorPos then
+            print("❌ Second floor position not found for spawn " .. spawnNum)
+            return false
+        end
+        
+        -- Step 3: Go to second floor sell position
+        if not tweenToPosition(secondFloorPos, 90, 8) then
+            print("❌ Failed to reach second floor position")
+            return false
+        end
+        
+        -- Step 4: Tween to character for selling
+        if not tweenToPosition(characterHRP.Position, 60, 6) then
+            print("❌ Failed to reach character on second floor")
+            return false
+        end
+        
+        -- Step 5: Fire sell prompt within 9 studs
+        local attempts = 0
+        while attempts < 3 do
+            local distance = (humanoidRootPart.Position - characterHRP.Position).Magnitude
+            
+            if distance <= 9 then
+                sellPrompt.MaxActivationDistance = 9
+                local fireSuccess = pcall(function()
+                    fireproximityprompt(sellPrompt)
+                end)
+                
+                if fireSuccess then
+                    print("🎯 Sell prompt fired for: " .. occupantData.characterName)
+                    sellSuccess = true
+                    break
+                else
+                    print("❌ Failed to fire sell prompt")
+                end
+            else
+                print("📏 Too far for selling (" .. math.floor(distance) .. " studs), moving closer...")
+                tweenToPosition(characterHRP.Position, 40, 3)
+            end
+            
+            attempts = attempts + 1
+            task.wait(0.5)
+        end
+        
+        -- Step 6: Return to second floor position after selling
+        if sellSuccess then
+            tweenToPosition(secondFloorPos, 80, 10)
+            print("✅ Successfully sold: " .. occupantData.characterName .. " (Second Floor)")
+        end
+        
+    else
+        print("🏠 Selling on first floor for locker " .. lockerNumber)
+        
+        -- First floor - direct approach
+        if not tweenToPosition(characterHRP.Position, 80, 6) then
+            print("❌ Failed to reach character on first floor")
+            return false
+        end
+        
+        -- Fire sell prompt within 9 studs
+        local attempts = 0
+        while attempts < 3 do
+            local distance = (humanoidRootPart.Position - characterHRP.Position).Magnitude
+            
+            if distance <= 9 then
+                sellPrompt.MaxActivationDistance = 9
+                local fireSuccess = pcall(function()
+                    fireproximityprompt(sellPrompt)
+                end)
+                
+                if fireSuccess then
+                    print("🎯 Sell prompt fired for: " .. occupantData.characterName)
+                    sellSuccess = true
+                    break
+                else
+                    print("❌ Failed to fire sell prompt")
+                end
+            else
+                print("📏 Too far for selling (" .. math.floor(distance) .. " studs), moving closer...")
+                tweenToPosition(characterHRP.Position, 40, 3)
+            end
+            
+            attempts = attempts + 1
+            task.wait(0.5)
+        end
+        
+        -- Go to spawn location with Y position 24 after selling
+        if sellSuccess then
+            local spawn = getPlayerSpawnLocation()
+            if spawn then
+                local spawnPos = Vector3.new(spawn.Position.X, 24, spawn.Position.Z)
+                tweenToPosition(spawnPos, 80, 10)
+            end
+            print("✅ Successfully sold: " .. occupantData.characterName .. " (First Floor)")
+        end
+    end
+    
+    if sellSuccess then
+        -- Wait for sell to process and update locker data
+        task.wait(2)
+        updateLockerData()
         return true
     else
-        warn("[AutoBuy] Failed to purchase: " .. targetCharacter.Name)
-        markCharacterPurchased(targetCharacter, false)
+        print("❌ Failed to sell: " .. occupantData.characterName)
         return false
     end
 end
 
-function AutoBuySystem:isCurrentTargetEnabled()
-    if not self.currentTargetName then
-        return true
+local function findWorstCharacterInLockers()
+    updateLockerData()
+    
+    local worstLocker = nil
+    local worstIncome = math.huge
+    
+    for lockerNum, occupantData in pairs(AutoBuySystem.occupantData) do
+        if occupantData.characterName and occupantData.income < worstIncome then
+            worstIncome = occupantData.income
+            worstLocker = lockerNum
+        end
     end
     
-    return gameData.characters[self.currentTargetName] and gameData.characters[self.currentTargetName].enabled
+    return worstLocker, worstIncome
+end
+
+local function findBestAvailableCharacter()
+    local bestChar = nil
+    local bestIncome = 0
+    
+    for _, charName in pairs(characterNames) do
+        if gameData.characters[charName] and gameData.characters[charName].enabled then
+            local characterModel = workspace:FindFirstChild(charName)
+            if characterModel and not isCharacterBought(charName) then
+                local charData = COMPLETE_DATABASE[charName]
+                if charData and charData.income > bestIncome then
+                    bestIncome = charData.income
+                    bestChar = charName
+                end
+            end
+        end
+    end
+    
+    return bestChar, bestIncome
+end
+
+-- Kaitun System - Auto character optimization
+local KaitunSystem = {
+    analyzing = false,
+    lastAnalysis = 0
+}
+
+function KaitunSystem:analyzeAndOptimize()
+    if self.analyzing then return end
+    self.analyzing = true
+    
+    local now = tick()
+    if now - self.lastAnalysis < 30 then
+        self.analyzing = false
+        return
+    end
+    self.lastAnalysis = now
+    
+    print("🤖 Kaitun: Analyzing current setup...")
+    
+    updateLockerData()
+    
+    -- Get current character incomes in lockers
+    local currentIncomes = {}
+    for lockerNum, occupantData in pairs(AutoBuySystem.occupantData) do
+        if occupantData.characterName then
+            table.insert(currentIncomes, occupantData.income)
+        end
+    end
+    
+    if #currentIncomes == 0 then
+        self.analyzing = false
+        return
+    end
+    
+    table.sort(currentIncomes, function(a, b) return b > a end) -- Sort descending
+    
+    local lowestIncome = currentIncomes[#currentIncomes]
+    print("🤖 Kaitun: Lowest income in lockers: " .. lowestIncome)
+    
+    -- Update character toggles based on analysis
+    for _, charName in pairs(characterNames) do
+        local charData = COMPLETE_DATABASE[charName]
+        if charData then
+            local shouldEnable = charData.income > lowestIncome
+            gameData.characters[charName] = gameData.characters[charName] or {enabled = false}
+            gameData.characters[charName].enabled = shouldEnable
+        end
+    end
+    
+    print("🤖 Kaitun: Character toggles updated based on income threshold: " .. lowestIncome)
+    
+    -- Save the updated configuration
+    if DataManager and DataManager.save then
+        DataManager:save(gameData)
+    end
+    
+    self.analyzing = false
+end
+
+function AutoBuySystem:shouldSellAndBuy(availableChar, availableIncome)
+    updateLockerData()
+    
+    local worstLocker, worstIncome = findWorstCharacterInLockers()
+    
+    if not worstLocker then return false end
+    
+    -- Check if available character has higher income than worst character in lockers
+    if availableIncome > worstIncome then
+        print("💡 Should sell and buy: " .. availableChar .. " (" .. availableIncome .. ") > Locker " .. worstLocker .. " (" .. worstIncome .. ")")
+        return true, worstLocker
+    end
+    
+    return false
+end
+
+function AutoBuySystem:findBestTarget()
+    local bestChar, bestIncome = findBestAvailableCharacter()
+    
+    if not bestChar then return nil end
+    
+    -- Check if we need to sell and buy
+    local shouldSell, worstLocker = self:shouldSellAndBuy(bestChar, bestIncome)
+    
+    return bestChar, bestIncome, shouldSell, worstLocker
+end
+
+function AutoBuySystem:executeSellandBuy(characterToBuy, lockerToSell)
+    print("🔄 Executing sell and buy operation...")
+    
+    -- Reset player first
+    resetPlayer()
+    
+    -- Sell the character from the locker
+    if sellCharacter(lockerToSell) then
+        print("✅ Sold character from locker " .. lockerToSell)
+        
+        -- Reset again to ensure clean state
+        resetPlayer()
+        
+        -- Buy the new character
+        if buyCharacter(characterToBuy) then
+            print("✅ Successfully completed sell and buy operation!")
+            return true
+        else
+            print("❌ Failed to buy " .. characterToBuy .. " after selling")
+        end
+    else
+        print("❌ Failed to sell character from locker " .. lockerToSell)
+    end
+    
+    return false
+end
+
+function AutoBuySystem:mainLoop()
+    print("🎯 Enhanced Auto Buy System started!")
+    
+    -- Reset player when first enabling
+    resetPlayer()
+    
+    while self.active do
+        -- Update character references
+        character = player.Character
+        if character then
+            humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+        end
+        
+        if not character or not humanoidRootPart then
+            task.wait(1)
+            continue
+        end
+        
+        -- Run Kaitun optimization if active
+        if self.kaitunActive then
+            KaitunSystem:analyzeAndOptimize()
+        end
+        
+        -- Find best target
+        local targetChar, targetIncome, shouldSell, lockerToSell = self:findBestTarget()
+        
+        if targetChar then
+            if shouldSell and lockerToSell then
+                -- Execute sell and buy operation
+                self:executeSellandBuy(targetChar, lockerToSell)
+            else
+                -- Simple buy operation
+                buyCharacter(targetChar)
+            end
+        else
+            print("📭 No suitable characters available")
+        end
+        
+        task.wait(2) -- Wait before next iteration
+    end
+    
+    print("🛑 Enhanced Auto Buy System stopped")
 end
 
 function AutoBuySystem:toggle()
@@ -963,459 +1155,34 @@ function AutoBuySystem:toggle()
     gameData.settings.autoBuyEnabled = self.active
     
     if self.active then
-        print("🎆 Auto Buy system STARTED (Enhanced)")
-        self:setupPromptMonitoring()
         spawn(function()
             self:mainLoop()
         end)
-    else
-        print("🛑 Auto Buy system STOPPED")
-        self:cleanupPromptMonitoring()
-        self.currentTarget = nil
-        self.currentTargetName = nil
-        if humanoid then
-            humanoid:MoveTo(humanoidRootPart.Position)
-        end
     end
-
+    
     if DataManager and DataManager.save then
         DataManager:save(gameData)
     end
 end
 
--- Setup proximity prompt monitoring to detect who fires prompts
-function AutoBuySystem:setupPromptMonitoring()
-    print("🔍 Setting up proximity prompt monitoring...")
+function AutoBuySystem:toggleKaitun()
+    self.kaitunActive = not self.kaitunActive
+    gameData.settings.kaitunEnabled = self.kaitunActive
     
-    -- Monitor all existing characters
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and COMPLETE_DATABASE[obj.Name] then
-            self:monitorCharacterPrompt(obj)
-        end
+    print(self.kaitunActive and "🤖 Kaitun system ENABLED" or "🤖 Kaitun system DISABLED")
+    
+    if DataManager and DataManager.save then
+        DataManager:save(gameData)
     end
-    
-    -- Monitor new characters as they spawn
-    self.workspaceConnection = workspace.ChildAdded:Connect(function(child)
-        if child:IsA("Model") and COMPLETE_DATABASE[child.Name] then
-            task.wait(0.1) -- Small delay to ensure prompt is loaded
-            self:monitorCharacterPrompt(child)
-        end
-    end)
 end
 
--- Monitor a specific character's proximity prompt
-function AutoBuySystem:monitorCharacterPrompt(character)
-    if not character or not character.Parent then return end
-    
-    local torso = character:FindFirstChild("Torso") or character:FindFirstChild("HumanoidRootPart")
-    if not torso then return end
-    
-    local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-    if not prompt or not prompt:IsA("ProximityPrompt") then return end
-    
-    -- Use robust UID generation that never returns nil
-    local uid = character.Name .. "_" .. tostring(tick()) .. "_" .. tostring(math.random(1000, 9999))
-    
-    -- Clean up existing connection if any
-    if self.promptConnections[uid] then
-        self.promptConnections[uid]:Disconnect()
-    end
-    
-    -- Monitor prompt triggered event
-    self.promptConnections[uid] = prompt.Triggered:Connect(function(playerWhoTriggered)
-        self.promptFiredBy[uid] = playerWhoTriggered
-        
-        if playerWhoTriggered == player then
-            print("✅ We fired prompt for: " .. character.Name)
-        else
-            print("🔍 Other player (" .. playerWhoTriggered.Name .. ") fired prompt for: " .. character.Name)
-        end
-        
-        -- Clean up after 30 seconds
-        task.delay(30, function()
-            if self.promptFiredBy[uid] then
-                self.promptFiredBy[uid] = nil
-            end
-        end)
-    end)
-    
-    -- Clean up connection when character is removed
-    character.AncestryChanged:Connect(function()
-        if not character.Parent and self.promptConnections[uid] then
-            self.promptConnections[uid]:Disconnect()
-            self.promptConnections[uid] = nil
-        end
-    end)
-end
-
--- Monitor for repurchases until character is gone - NEVER GIVES UP
-function AutoBuySystem:monitorForRepurchase(character)
-    if not character or not character.Parent then return end
-    
-    local characterName = character.Name
-    print("🔍 Starting PERSISTENT repurchase monitoring for: " .. characterName)
-    
-    -- Add to persistent monitoring list
-    if not self.persistentRepurchaseMonitors then
-        self.persistentRepurchaseMonitors = {}
-    end
-    
-    -- Prevent duplicate monitors for same character
-    if self.persistentRepurchaseMonitors[characterName] then
-        print("⚠️ Already monitoring " .. characterName .. " for repurchases")
-        return
-    end
-    
-    self.persistentRepurchaseMonitors[characterName] = true
-    
-    -- Monitor in a separate coroutine that NEVER stops
-    task.spawn(function()
-        print("🔄 PERSISTENT MONITOR: Starting endless repurchase monitoring for " .. characterName)
-        
-        while self.active do
-            -- Continuously scan for this character in workspace
-            local currentChar = self:findCharacterInWorkspace(characterName)
-            
-            if currentChar then
-                -- Check if someone else bought it
-                if self:isCharacterPurchasedByOther(currentChar) then
-                    print("⚡ PERSISTENT REPURCHASE: " .. characterName .. " was bought by someone else!")
-                    
-                    -- Mark it as purchased so we don't target it in main loop
-                    local uid = getCharacterUID(currentChar)
-                    self.purchasedCharacters[uid] = tick()
-                    
-                    -- Wait for respawn and keep trying - NO LIMITS, NEVER GIVE UP
-                    print("🔄 WAITING FOR RESPAWN: " .. characterName .. " - will wait forever...")
-                    while self.active do -- Wait forever until respawn
-                        task.wait(0.2)
-                        
-                        local respawnedChar = self:findRespawnedCharacter(characterName)
-                        if respawnedChar then
-                            print("🔄 PERSISTENT: Found respawned " .. characterName .. " - attempting instant repurchase")
-                            local success = attemptPurchase(LocalPlayer, respawnedChar, true)
-                            if success then
-                                print("✅ PERSISTENT repurchase successful: " .. characterName)
-                                self.purchasedCharacters[getCharacterUID(respawnedChar)] = tick()
-                                print("🔄 CONTINUING ENDLESS MONITORING for: " .. characterName)
-                                break -- Exit respawn loop, continue main monitoring
-                            else
-                                print("❌ Repurchase failed, will keep trying...")
-                            end
-                        end
-                    end
-                end
-            end
-            
-            task.wait(0.3) -- Check every 0.3 seconds
-        end
-        
-        -- Clean up when system stops
-        self.persistentRepurchaseMonitors[characterName] = nil
-        print("🛑 PERSISTENT MONITOR STOPPED for: " .. characterName)
-    end)
-end
-
--- Find a respawned character by name
-function AutoBuySystem:findRespawnedCharacter(characterName)
-    for _, char in pairs(workspace:GetChildren()) do
-        if char.Name == characterName and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
-            -- Check if this is a new instance we haven't purchased
-            local uid = getCharacterUID(char)
-            if not self.purchasedCharacters[uid] then
-                return char
-            end
-        end
-    end
-    return nil
-end
-
--- Find any character in workspace by name (for persistent monitoring)
-function AutoBuySystem:findCharacterInWorkspace(characterName)
-    for _, char in pairs(workspace:GetChildren()) do
-        if char.Name == characterName and char:FindFirstChild("Humanoid") and char:FindFirstChild("HumanoidRootPart") then
-            return char
-        end
-    end
-    return nil
-end
-
--- Cleanup proximity prompt monitoring
-function AutoBuySystem:cleanupPromptMonitoring()
-    print("🧹 Cleaning up proximity prompt monitoring...")
-    
-    -- Disconnect workspace connection
-    if self.workspaceConnection then
-        self.workspaceConnection:Disconnect()
-        self.workspaceConnection = nil
-    end
-    
-    -- Disconnect all prompt connections
-    for uid, connection in pairs(self.promptConnections) do
-        if connection then
-            connection:Disconnect()
-        end
-    end
-    
-    -- Clear tracking data
-    self.promptConnections = {}
-    self.promptFiredBy = {}
-end
-
--- Find all available targets instead of just the best one
-function AutoBuySystem:findAllAvailableTargets()
-    local availableTargets = {}
-    local now = tick()
-    
-    if now - self.lastTargetUpdate < 0.8 then
-        return availableTargets
-    end
-    
-    self.lastTargetUpdate = now
-    
-    for _, charName in ipairs(characterNames) do
-        local charData = COMPLETE_DATABASE[charName]
-        local trackData = gameData.characters[charName]
-        
-        if not trackData.enabled then continue end
-        
-        -- Run respawn detection for this character type
-        detectCharacterRespawn(charName)
-        
-        -- Find ALL instances of this character, not just the first one
-        for _, target in pairs(workspace:GetChildren()) do
-            if target.Name == charName and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
-                local targetUID = getCharacterUID(target)
-                
-                -- Skip if already purchased this specific instance
-                if self.purchasedCharacters[targetUID] then continue end
-                
-                -- Skip if character is heading to another player's spawn
-                if self:isCharacterPurchasedByOther(target) then continue end
-                
-                local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-                if not torso then continue end
-                
-                -- Add to available targets list
-                table.insert(availableTargets, target)
-            end
-        end
-    end
-    
-    return availableTargets
-end
-
-function AutoBuySystem:findBestTarget()
-    local bestTarget = nil
-    local bestScore = -math.huge
-    local now = tick()
-    
-    if now - self.lastTargetUpdate < 0.8 then
-        return bestTarget, bestScore
-    end
-    
-    self.lastTargetUpdate = now
-    
-    for _, charName in ipairs(characterNames) do
-        local charData = COMPLETE_DATABASE[charName]
-        local trackData = gameData.characters[charName]
-        
-        if not trackData.enabled then continue end
-        
-        -- Run respawn detection for this character type
-        detectCharacterRespawn(charName)
-        
-        local target = workspace:FindFirstChild(charName)
-        if target and target:IsA("Model") and target:FindFirstChild("HumanoidRootPart") then
-            if isCharacterPurchased(target) then continue end
-            
-            -- Check if character is heading to another player's spawn (purchased by someone else)
-            if self:isCharacterPurchasedByOther(target) then continue end
-            
-            local torso = target:FindFirstChild("Torso") or target:FindFirstChild("HumanoidRootPart")
-            if not torso then continue end
-            
-            local prompt = torso:FindFirstChild("BuyPrompt") or torso:FindFirstChild("BuyPromptOLD")
-            if not prompt or not prompt:IsA("ProximityPrompt") then continue end
-            
-            local distance = (humanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
-            
-            -- Priority based on income per second
-            local incomeScore = charData.income or 0
-            local distancePenalty = distance * 10
-            local proximityBonus = math.max(0, (50 - distance) * 5)
-            
-            local score = incomeScore + proximityBonus - distancePenalty
-            
-            if score > bestScore then
-                bestScore = score
-                bestTarget = target
-            end
-        end
-    end
-    
-    return bestTarget, bestScore
-end
-
-function AutoBuySystem:followTarget(target)
-    if not target or not target.Parent then return false end
-    if isCharacterPurchased(target) then return false end
-
-    if humanoid and humanoid.WalkSpeed ~= 21 then
-        humanoid.WalkSpeed = 21
-    end
-
-    local startTime = tick()
-    local targetName = target.Name
-    self.currentTargetName = targetName
-
-    print("🎯 Following target: " .. targetName)
-
-    while self.active and target.Parent and (tick() - startTime) < CONFIG.MAX_FOLLOW_TIME do
-        if not self:isCurrentTargetEnabled() then
-            self.currentTarget = nil
-            self.currentTargetName = nil
-            if humanoid then
-                humanoid:MoveTo(humanoidRootPart.Position)
-            end
-            print("❌ Target disabled during follow: " .. targetName)
-            return false
-        end
-
-        if isCharacterPurchased(target) then
-            print("✅ Target already purchased: " .. targetName)
-            return false
-        end
-
-        -- INSTANT REBUY CHECK - Check if someone else bought it
-        if self:isCharacterPurchasedByOther(target) then
-            print("⚡ INSTANT REBUY TRIGGERED for: " .. targetName)
-            print("🔄 " .. targetName .. " was bought by someone else - clearing purchase record")
-            
-            -- Clear this character from purchased list so we can buy it again if it respawns
-            local uid = getCharacterUID(target)
-            if uid and self.purchasedCharacters[uid] then
-                self.purchasedCharacters[uid] = nil
-                print("✅ Cleared purchase record for " .. targetName .. " - can rebuy if respawns")
-            end
-            
-            self.currentTarget = nil
-            self.currentTargetName = nil
-            return "rebuy" -- Signal for immediate rebuy
-        end
-
-        if not target.Parent or not target:FindFirstChild("HumanoidRootPart") then
-            print("❌ Target became invalid: " .. targetName .. " - stopping follow")
-            return false
-        end
-
-        local distance = (humanoidRootPart.Position - target.HumanoidRootPart.Position).Magnitude
-
-        if distance <= CONFIG.AUTO_BUY_DISTANCE then
-            if target.Name ~= targetName then
-                print("❌ Target name mismatch during purchase")
-                return false
-            end
-            
-            print("💰 In range, attempting purchase: " .. targetName)
-            -- First purchase uses follow mode (false), subsequent use instant mode
-            local useInstantMode = self.purchaseCount > 0
-            local success = attemptPurchase(player, target, useInstantMode)
-            if success then
-                task.wait(1) -- Reduced from 3 to 1 second for faster rebuy
-                return true
-            else
-                print("❌ Purchase failed for: " .. targetName)
-                task.wait(0.5) -- Reduced from 2 to 0.5 seconds
-                return false
-            end
-        end
-
-        humanoid:MoveTo(target.HumanoidRootPart.Position)
-        task.wait(0.1) -- Reduced from 0.15 to 0.1 for faster response
-    end
-
-    if tick() - startTime >= CONFIG.MAX_FOLLOW_TIME then
-        print("⏰ Follow timeout for: " .. targetName)
-    end
-
-    self.currentTargetName = nil
-    return false
-end
-
-function AutoBuySystem:mainLoop()
-    print("🔄 Auto Buy main loop started (Enhanced)")
-    
-    while self.active do
-        if not self:isCurrentTargetEnabled() then
-            self.currentTarget = nil
-            self.currentTargetName = nil
-            if humanoid then
-                humanoid:MoveTo(humanoidRootPart.Position)
-            end
-            task.wait(1)
-            continue
-        end
-        
-        -- Find ALL available targets, not just the best one
-        local availableTargets = self:findAllAvailableTargets()
-        
-        if #availableTargets > 0 then
-            print("🎯 Found " .. #availableTargets .. " available targets")
-            
-            -- Process each available target
-            for _, target in pairs(availableTargets) do
-                if not self.active then break end
-                
-                -- Check if this specific character instance was already purchased
-                local targetUID = getCharacterUID(target)
-                local alreadyPurchased = self.purchasedCharacters[targetUID] ~= nil
-                
-                if not alreadyPurchased then
-                    print("🚶 Processing new character: " .. target.Name)
-                    self.currentTarget = target
-                    
-                    local result = self:followTarget(target)
-                    
-                    if result == true then
-                        print("✅ Purchase successful: " .. target.Name)
-                        self.purchasedCharacters[targetUID] = tick()
-                        
-                        -- Start persistent monitoring for this character name
-                        self:monitorForRepurchase(target)
-                        
-                        -- Brief pause before next character
-                        task.wait(0.3)
-                    elseif result == "rebuy" then
-                        print("🔄 INSTANT REBUY TRIGGERED during purchase!")
-                    end
-                    
-                    self.currentTarget = nil
-                else
-                    print("⚠️ Already purchased: " .. target.Name .. " - skipping")
-                end
-            end
-        else
-            self.currentTargetName = nil
-            -- Clean up old tracking data periodically
-            local currentTime = tick()
-            for characterName, instances in pairs(self.characterInstances) do
-                for uid, data in pairs(instances) do
-                    if data.timestamp and (currentTime - data.timestamp) > 300 then
-                        instances[uid] = nil
-                    end
-                end
-            end
-            if humanoid then
-                humanoid:MoveTo(humanoidRootPart.Position)
-            end
-        end
-        
-        task.wait(0.5) -- Quick loop for instant rebuy
-    end
-    
-    print("🛑 Auto Buy main loop stopped")
-end
+-- Export the enhanced system
+return {
+    AutoBuySystem = AutoBuySystem,
+    KaitunSystem = KaitunSystem,
+    updateLockerData = updateLockerData,
+    getAllLockers = getAllLockers
+}
 
 -- Lock door function
 local function lockDoor()
@@ -2533,19 +2300,22 @@ function UIManager:toggleSettingsPanel()
     p.Visible = not p.Visible
 end
 
--- Updated createSettingsPanel function - starts hidden
+-- Updated Settings Panel with Kaitun Feature and Proper Height
+-- To be integrated into the existing UIManager:createSettingsPanel() function
+
 function UIManager:createSettingsPanel()
-    print("Building settings panel...")
+    print("Building enhanced settings panel...")
 
     gameData.settings = gameData.settings or {}
     gameData.settings.autoBuyEnabled = gameData.settings.autoBuyEnabled or false
     gameData.settings.autoLockEnabled = gameData.settings.autoLockEnabled or false
     gameData.settings.autoCollectEnabled = gameData.settings.autoCollectEnabled or false
+    gameData.settings.kaitunEnabled = gameData.settings.kaitunEnabled or false
 
     local panel = Instance.new("Frame")
     panel.Name = "SettingsPanel"
-    panel.Size = UDim2.new(0, 200, 0, 180)  -- Reduced from 220x240 to 200x180
-    panel.Position = UDim2.new(1, -210, 0, 65)  -- Adjusted position
+    panel.Size = UDim2.new(0, 220, 0, 280)  -- Increased from 200x180 to 220x280
+    panel.Position = UDim2.new(1, -230, 0, 65)  -- Adjusted position for new width
     panel.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
     panel.Visible = false
     panel.ZIndex = 50
@@ -2562,27 +2332,27 @@ function UIManager:createSettingsPanel()
     corner.Parent = panel
 
     local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 6)  -- Reduced from 8
+    layout.Padding = UDim.new(0, 8)  -- Increased padding for better spacing
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     layout.Parent = panel
 
     local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 8)     -- Reduced from 10
-    padding.PaddingLeft = UDim.new(0, 8)    -- Reduced from 10
-    padding.PaddingRight = UDim.new(0, 8)   -- Reduced from 10
-    padding.PaddingBottom = UDim.new(0, 8)  -- Added bottom padding
+    padding.PaddingTop = UDim.new(0, 12)
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.PaddingRight = UDim.new(0, 12)
+    padding.PaddingBottom = UDim.new(0, 12)
     padding.Parent = panel
 
     local function makeSwitch(labelText, settingKey, callback, order)
         local container = Instance.new("Frame")
-        container.Size = UDim2.new(1, 0, 0, 30)
+        container.Size = UDim2.new(1, 0, 0, 32)  -- Slightly taller for better appearance
         container.LayoutOrder = order
         container.BackgroundTransparency = 1
         container.ZIndex = 51
         container.Parent = panel
 
         local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(0.7, 0, 1, 0)
+        lbl.Size = UDim2.new(0.65, 0, 1, 0)  -- Adjusted width ratio
         lbl.BackgroundTransparency = 1
         lbl.Text = labelText
         lbl.Font = Enum.Font.Gotham
@@ -2593,8 +2363,8 @@ function UIManager:createSettingsPanel()
         lbl.Parent = container
 
         local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.3, -4, 1, 0)
-        btn.Position = UDim2.new(0.7, 4, 0, 0)
+        btn.Size = UDim2.new(0.3, -4, 0, 26)  -- Better proportioned button
+        btn.Position = UDim2.new(0.7, 4, 0.5, -13)
         btn.AutoButtonColor = false
         btn.BackgroundColor3 = gameData.settings[settingKey] and Color3.fromRGB(50, 205, 50) or Color3.fromRGB(100, 100, 100)
         btn.Text = gameData.settings[settingKey] and "ON" or "OFF"
@@ -2603,6 +2373,10 @@ function UIManager:createSettingsPanel()
         btn.TextSize = 12
         btn.ZIndex = 53
         btn.Parent = container
+
+        local btnCorner = Instance.new("UICorner")
+        btnCorner.CornerRadius = UDim.new(0, 6)
+        btnCorner.Parent = btn
 
         btn.MouseButton1Click:Connect(function()
             gameData.settings[settingKey] = not gameData.settings[settingKey]
@@ -2613,7 +2387,141 @@ function UIManager:createSettingsPanel()
                 DataManager:save(gameData)
             end
         end)
+
+        return container
     end
+
+    -- Server Teleport section (above auto-buy as requested)
+    local teleportContainer = Instance.new("Frame")
+    teleportContainer.Size = UDim2.new(1, 0, 0, 70)  -- Increased height
+    teleportContainer.LayoutOrder = 0
+    teleportContainer.BackgroundTransparency = 1
+    teleportContainer.ZIndex = 51
+    teleportContainer.Parent = panel
+
+    local teleportLabel = Instance.new("TextLabel")
+    teleportLabel.Size = UDim2.new(1, 0, 0, 22)
+    teleportLabel.BackgroundTransparency = 1
+    teleportLabel.Text = "Server Teleport"
+    teleportLabel.Font = Enum.Font.GothamBold
+    teleportLabel.TextSize = 15
+    teleportLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
+    teleportLabel.ZIndex = 52
+    teleportLabel.Parent = teleportContainer
+
+    local serverInput = Instance.new("TextBox")
+    serverInput.Size = UDim2.new(0.62, 0, 0, 28)
+    serverInput.Position = UDim2.new(0, 0, 0, 28)
+    serverInput.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    serverInput.BorderSizePixel = 0
+    serverInput.Text = ""
+    serverInput.PlaceholderText = "Server ID"
+    serverInput.Font = Enum.Font.Gotham
+    serverInput.TextSize = 12
+    serverInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    serverInput.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    serverInput.ZIndex = 52
+    serverInput.Parent = teleportContainer
+
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 6)
+    inputCorner.Parent = serverInput
+
+    local teleportBtn = Instance.new("TextButton")
+    teleportBtn.Size = UDim2.new(0.35, -5, 0, 28)
+    teleportBtn.Position = UDim2.new(0.65, 5, 0, 28)
+    teleportBtn.BackgroundColor3 = Color3.fromRGB(70, 130, 180)
+    teleportBtn.BorderSizePixel = 0
+    teleportBtn.Text = "Teleport"
+    teleportBtn.Font = Enum.Font.GothamBold
+    teleportBtn.TextSize = 12
+    teleportBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    teleportBtn.ZIndex = 52
+    teleportBtn.Parent = teleportContainer
+
+    local teleportCorner = Instance.new("UICorner")
+    teleportCorner.CornerRadius = UDim.new(0, 6)
+    teleportCorner.Parent = teleportBtn
+
+    teleportBtn.MouseButton1Click:Connect(function()
+        local serverId = serverInput.Text:gsub("%s+", "")
+        if serverId and serverId ~= "" then
+            ServerTeleporter:teleportToServer(serverId)
+        end
+    end)
+
+    -- Kaitun feature (above Auto Buy as requested)
+    local kaitunContainer = makeSwitch("Kaitun (Auto Optimize)", "kaitunEnabled", function(enabled)
+        if AutoBuySystem and AutoBuySystem.toggleKaitun then
+            AutoBuySystem:toggleKaitun()
+        end
+    end, 1)
+
+    -- Add description for Kaitun
+    local kaitunDesc = Instance.new("TextLabel")
+    kaitunDesc.Size = UDim2.new(1, 0, 0, 24)
+    kaitunDesc.LayoutOrder = 2
+    kaitunDesc.BackgroundTransparency = 1
+    kaitunDesc.Text = "Automatically optimizes character selection based on your current lineup"
+    kaitunDesc.Font = Enum.Font.Gotham
+    kaitunDesc.TextSize = 10
+    kaitunDesc.TextColor3 = Color3.fromRGB(180, 180, 200)
+    kaitunDesc.TextXAlignment = Enum.TextXAlignment.Left
+    kaitunDesc.TextWrapped = true
+    kaitunDesc.ZIndex = 52
+    kaitunDesc.Parent = panel
+
+    makeSwitch("Auto Buy", "autoBuyEnabled", function(enabled)
+        if AutoBuySystem and AutoBuySystem.toggle then
+            AutoBuySystem:toggle()
+        end
+    end, 3)
+
+    makeSwitch("Auto Lock Base", "autoLockEnabled", function(enabled)
+        if AutoLock and AutoLock.toggle then
+            AutoLock:toggle()
+        end
+    end, 4)
+
+    makeSwitch("Auto Collect Money", "autoCollectEnabled", function(enabled)
+        if AutoCollect and AutoCollect.toggle then
+            AutoCollect:toggle()
+        end
+    end, 5)
+
+    -- Clear Data button
+    local clearBtn = Instance.new("TextButton")
+    clearBtn.Size = UDim2.new(1, 0, 0, 35)
+    clearBtn.LayoutOrder = 6
+    clearBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    clearBtn.TextColor3 = Color3.new(1, 1, 1)
+    clearBtn.Text = "Clear Data"
+    clearBtn.Font = Enum.Font.GothamBold
+    clearBtn.TextSize = 14
+    clearBtn.ZIndex = 53
+    clearBtn.Parent = panel
+
+    local clearCorner = Instance.new("UICorner")
+    clearCorner.CornerRadius = UDim.new(0, 8)
+    clearCorner.Parent = clearBtn
+
+    clearBtn.MouseButton1Click:Connect(function()
+        if DataManager and DataManager.clear then
+            DataManager:clear()
+        end
+        if UIManager.updateCharacterList then
+            UIManager:updateCharacterList()
+        end
+        if UIManager.updateTrackingCount then
+            UIManager:updateTrackingCount()
+        end
+    end)
+
+    self.elements.settingsPanel = panel
+    
+    print("✅ Enhanced settings panel created with Kaitun feature")
+end
 
     -- Server Teleport section (above auto-buy as requested)
     local teleportContainer = Instance.new("Frame")
@@ -2773,7 +2681,7 @@ function UIManager:createSearchSection(parent)
     end, gameData.filters.selectedRarity or "All")
     rarityFilter.Parent = searchContainer
     
-    local mutationFilter = self:createFilterDropdown("Mutation", {"All", "Base", "Golden", "Diamond"}, 
+    local mutationFilter = self:createFilterDropdown("Mutation", {"All", "Base", "Golden", "Diamond", "Emerald"}, 
         UDim2.new(0.48, 0, 0, 25), UDim2.new(0.52, 0, 0, 80), function(selected)
         gameData.filters.selectedMutation = selected == "All" and nil or selected
         self:updateCharacterList()
@@ -3655,4 +3563,3 @@ function UIManager:updateCharacterList()
 
         task.wait(2)
         initialize()
-print("helsw")
